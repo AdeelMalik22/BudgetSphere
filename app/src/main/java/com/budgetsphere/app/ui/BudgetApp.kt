@@ -22,7 +22,7 @@ import java.security.MessageDigest
     val snackbar=remember {SnackbarHostState()}
     LaunchedEffect(message){message?.let {vm.message.value=null;snackbar.showSnackbar(it)}}
     BudgetSphereTheme(prefs.theme,activeWorkspace?.profile?.color?.let {androidx.compose.ui.graphics.Color(it)}) {
-        Scaffold(snackbarHost={SnackbarHost(snackbar)}) {padding->Column(Modifier.fillMaxSize().padding(padding)){
+        Scaffold(contentWindowInsets=WindowInsets(0,0,0,0),snackbarHost={SnackbarHost(snackbar)}) {padding->Column(Modifier.fillMaxSize().padding(padding)){
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
             key(account?.id){if(account==null)AuthScreen(vm,biometrics)else AccountWorkspace(vm,biometrics,receipts,portability)}
         }}
@@ -31,7 +31,7 @@ import java.security.MessageDigest
 @Composable private fun AccountWorkspace(vm: AppViewModel,biometrics: Biometrics,receipts: ReceiptStore,portability: Portability) {
     val workspace by vm.workspace.collectAsStateWithLifecycle();var manage by remember {mutableStateOf(false)}
     if(workspace==null || manage) {
-        Column {Row {if(workspace!=null)TextButton(onClick={manage=false}){Text("Back to workspace")};TextButton(onClick=vm::logout){Text("Log out")}};Box(Modifier.weight(1f)){ProfilesScreen(vm,{manage=false})}}
+        Column(Modifier.safeDrawingPadding()) {Row {if(workspace!=null)TextButton(onClick={manage=false}){Text("Back to workspace")};TextButton(onClick=vm::logout){Text("Log out")}};Box(Modifier.weight(1f)){ProfilesScreen(vm,{manage=false})}}
         return
     }
     val selected=workspace?:return
@@ -42,7 +42,7 @@ import java.security.MessageDigest
         when(val state=load) {
             LoadState.Loading->Box(Modifier.fillMaxSize(),contentAlignment=androidx.compose.ui.Alignment.Center){CircularProgressIndicator()}
             is LoadState.Ready->WorkspaceNavigation(state.data,vm,biometrics,receipts,portability,{manage=true})
-            LoadState.Failed->Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            LoadState.Failed->Column(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 EmptyState("Workspace unavailable","We couldn't read this workspace. Check available storage, then retry.")
                 Button(onClick={retry++}){Text("Retry")}
                 TextButton(onClick={manage=true}){Text("Manage profiles")}

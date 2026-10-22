@@ -21,7 +21,7 @@ import com.budgetsphere.app.domain.Validation
     val identifierError=validationError{Validation.identifier(identifier)}
     val passwordError=validationError{if(signup)Validation.password(password)else require(password.isNotEmpty()){"Enter your password"}}
     val confirmError=if(signup)validationError{require(password==confirm){"Passwords do not match"}}else null
-    Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         Spacer(Modifier.height(24.dp));Icon(Icons.Outlined.AccountBalanceWallet,null,Modifier.size(56.dp),tint=MaterialTheme.colorScheme.primary)
         Text("BudgetSphere",style=MaterialTheme.typography.headlineLarge)
         Text("Your finances. Your device.",style=MaterialTheme.typography.titleMedium)
