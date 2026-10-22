@@ -8,12 +8,12 @@ This plan is the implementation checklist and delivery record. A feature is comp
 
 ## Current status
 
-- The repository was initially empty, with no commits or remote branches.
-- Repository-local Git author: Subhan Adeel <ms1640070@gmail.com>.
-- Initial Gradle, Android manifest, branding, application, money/date utilities, and Room model/DAO files have been created. These are preliminary and have not yet passed build or security validation.
-- Android SDK and Gradle preparation has begun. Toolchain installation and dependency compatibility still need verification.
-- Implementation has resumed. Each feature or fix is committed and pushed separately after its relevant checks.
-- The plan has been committed and pushed to `main`; Git write access is verified. Do not add assistant contributor attribution or co-author trailers.
+- The repository began empty. Native Android source and the planned offline workflows are now implemented and pushed in focused feature/fix commits.
+- Repository-local Git author: Subhan Adeel <ms1640070@gmail.com>. No assistant attribution or co-author trailers are added.
+- Toolchain preparation and the reusable cloud setup script have completed successfully in this machine. Gradle produces a development-signed debug APK and an instrumentation APK.
+- The final local gate passed: 23 unit/Room/Robolectric/cryptography/race-condition/Compose tests with no failures or skips, debug and instrumentation APK assembly, and lint with no errors. Details are tracked in [docs/verification.md](docs/verification.md).
+- Device instrumentation could not execute because adb needs a directory on this machine's read-only home filesystem. A software emulator was attempted and stopped after this host limitation was confirmed.
+- Code implementation is distinct from release acceptance. Hardware/device behavior, independent security review, signing, and publication remain unverified; see the verification record and [SECURITY.md](SECURITY.md).
 
 ## Technical direction
 
@@ -29,96 +29,96 @@ This plan is the implementation checklist and delivery record. A feature is comp
 
 ## Phase 1 — Foundation and build environment
 
-- [ ] Verify SDK, JDK, Gradle, Android plugin, Kotlin, Compose, KSP, Room, and Hilt compatibility.
-- [ ] Complete Gradle wrapper, modules, dependency pins, test runners, and build configuration.
-- [ ] Establish core, data, domain, and feature package boundaries and repository interfaces.
-- [ ] Configure Hilt, Room, DataStore, lifecycle handling, and Navigation Compose.
-- [ ] Create a reusable design system: navy/emerald palette, typography, spacing, cards, inputs, semantic colors, light/dark/system themes.
-- [ ] Finish adaptive, legacy-compatible, and monochrome launcher assets and branded splash screen; export a 1024×1024 branding PNG if supported.
-- [ ] Build the empty application and verify dependency resolution before adding more feature layers.
+- [x] Verify SDK, JDK, Gradle, Android plugin, Kotlin, Compose, KSP, Room, and Hilt compatibility.
+- [x] Complete Gradle wrapper, modules, dependency pins, test runners, and build configuration.
+- [x] Establish core, data, domain, and feature package boundaries and repository interfaces.
+- [x] Configure Hilt, Room, DataStore, lifecycle handling, and Navigation Compose.
+- [x] Create a reusable design system: navy/emerald palette, typography, spacing, cards, inputs, semantic colors, light/dark/system themes.
+- [x] Finish adaptive, legacy-compatible, and monochrome launcher assets and branded splash screen; export a 1024×1024 branding PNG if supported.
+- [x] Build the empty application and verify dependency resolution before adding more feature layers.
 
-Validation gate: debug APK builds; manifest has only justified permissions; app launches to an honest empty/welcome state. No unresolved dependency or toolchain failures.
+Validation gate: debug APK builds; manifest has only justified permissions; the real activity launches in Robolectric to the empty authentication flow. Physical-device launch remains pending. No unresolved dependency or toolchain failures.
 
 ## Phase 2 — Authentication, sessions, and privacy
 
-- [ ] Implement validated local signup and login using name, normalized username/email, password, and confirmation.
-- [ ] Use a strong salted adaptive password derivation function, securely generated salts, safe comparison, bounded inputs, and background-thread derivation. Store only derivation metadata and verifier in private storage.
-- [ ] Handle duplicate identifiers, invalid credentials, throttling, change password, logout, and local account deletion safely.
-- [ ] Keep authenticated session state in memory, require authentication after process restart/logout, and clear account-scoped UI state on logout.
-- [ ] Implement AndroidX BiometricPrompt availability checks, enrollment/disable controls, authenticated Keystore-backed unlock, invalidated-key handling, and explicit password fallback.
-- [ ] Require a successful password login before biometric enrollment; never treat failed/canceled biometrics as authentication success.
-- [ ] Implement one centralized privacy manager. Fresh login and profile switching must never reveal values without authentication.
-- [ ] Hide balances, amounts, charts, budgets, receipt previews, accessible semantics, and other sensitive content throughout navigation.
-- [ ] Require successful biometric verification or account-password verification to reveal; failures remain hidden.
-- [ ] Apply screenshot/recent-app protection and configurable background privacy locking with safe lifecycle transitions.
-- [ ] Explain installation-local accounts and the absence of remote password reset. Avoid a fake recovery flow.
+- [x] Implement validated local signup and login using name, normalized username/email, password, and confirmation.
+- [x] Use PBKDF2-HMAC-SHA256 with 600,000 iterations, 32-byte random salts, safe comparison, bounded inputs, and background-thread derivation. Store only derivation metadata and verifier in private storage.
+- [x] Handle duplicate identifiers, invalid credentials, throttling, change password, logout, and local account deletion safely.
+- [x] Keep authenticated session state in memory, require authentication after process restart/logout, and clear account-scoped UI state on logout.
+- [x] Implement AndroidX BiometricPrompt availability checks, enrollment/disable controls, authenticated Keystore-backed unlock, invalidated-key handling, and explicit password fallback.
+- [x] Require a successful password login before biometric enrollment; never treat failed/canceled biometrics as authentication success.
+- [x] Implement one centralized privacy manager. Fresh login and profile switching must never reveal values without authentication.
+- [x] Hide balances, amounts, charts, budgets, receipt previews, accessible semantics, and other sensitive content throughout navigation.
+- [x] Require successful biometric verification or account-password verification to reveal; failures remain hidden.
+- [x] Apply screenshot/recent-app protection and configurable background privacy locking with safe lifecycle transitions.
+- [x] Explain installation-local accounts and the absence of remote password reset. Avoid a fake recovery flow.
 
 Validation gate: password-verifier tests and authentication flows pass; canceled/failed reveal stays hidden; backgrounding, logout, navigation, and process recreation cannot bypass privacy or authentication.
 
 ## Phase 3 — Profiles and isolated persistence
 
-- [ ] Finalize account, profile, category, transaction, budget, and attachment entities with foreign keys, indexes, uniqueness constraints, and deliberate cascade/restrict rules.
-- [ ] Export the initial Room schema and define an explicit migration policy without destructive fallback.
-- [ ] Scope every read, mutation, aggregate, search, attachment, and export by authenticated account and profile. Validate ownership inside repositories, not only in UI.
-- [ ] Implement create, rename, edit, delete, and switch profile; include description, avatar/icon, theme color, and currency.
-- [ ] Create profile-specific default categories atomically with each profile.
-- [ ] Restore the last selected profile only after validating ownership.
-- [ ] Switch scopes atomically: clear rendered financial state, cancel old observers and work, reset filters/search, and reject late results from old scopes.
-- [ ] Define currency-change behavior that preserves historical monetary meaning and never invents conversion rates.
+- [x] Finalize account, profile, category, transaction, budget, and attachment entities with foreign keys, indexes, uniqueness constraints, and deliberate cascade/restrict rules.
+- [x] Export the initial Room schema and define an explicit migration policy without destructive fallback.
+- [x] Scope every read, mutation, aggregate, search, attachment, and export by authenticated account and profile. Validate ownership inside repositories, not only in UI.
+- [x] Implement create, rename, edit, delete, and switch profile; include description, avatar/icon, theme color, and currency.
+- [x] Create profile-specific default categories atomically with each profile.
+- [x] Restore the last selected profile only after validating ownership.
+- [x] Switch scopes atomically: clear rendered financial state, cancel old observers and work, reset filters/search, and reject late results from old scopes.
+- [x] Define currency-change behavior that preserves historical monetary meaning and never invents conversion rates.
 
 Validation gate: database tests reject cross-account/profile relationships and mutations; rapid profile switching never renders another workspace's transactions, totals, budgets, charts, search results, or receipts.
 
 ## Phase 4 — Transactions, categories, and receipts
 
-- [ ] Implement real expense and income creation, detail, edit, deletion, and persistence across restarts.
-- [ ] Support required title, positive amount, category, date, currency, ownership, and timestamps; optional description, notes, payment method, tags, and attachments.
-- [ ] Add validated forms, useful keyboard actions, date picker, inline errors, loading states, duplicate-submit protection, and destructive-action confirmations.
-- [ ] Implement transaction history with date grouping, search, category/type/date/amount filters, sort controls, and bounded/paginated queries with lazy rendering.
-- [ ] Implement custom category creation/editing, icon/color selection, and explicit reassignment when deleting categories with financial records. Handle budget reassignment conflicts atomically.
-- [ ] Implement Photo Picker and secure camera capture, private file import, bounded decoding, compression, thumbnails, preview, removal, and FileProvider grants.
-- [ ] Keep attachments account/profile scoped and preserve them during transaction editing.
-- [ ] Clean up canceled imports and orphaned files; handle missing/corrupt images, storage exhaustion, permission denial, and process restarts.
+- [x] Implement real expense and income creation, detail, edit, deletion, and persistence across restarts.
+- [x] Support required title, positive amount, category, date, currency, ownership, and timestamps; optional description, notes, payment method, tags, and attachments.
+- [x] Add validated forms, useful keyboard actions, date picker, inline errors, loading states, duplicate-submit protection, and destructive-action confirmations.
+- [x] Implement transaction history with date grouping, search, category/type/date/amount filters, sort controls, and bounded/paginated queries with lazy rendering.
+- [x] Implement custom category creation/editing, icon/color selection, and explicit reassignment when deleting categories with financial records. Handle budget reassignment conflicts atomically.
+- [x] Implement Photo Picker and secure camera capture, private file import, bounded decoding, compression, thumbnails, preview, removal, and FileProvider grants.
+- [x] Keep attachments account/profile scoped and preserve them during transaction editing.
+- [x] Clean up canceled imports and orphaned files; handle missing/corrupt images, storage exhaustion, permission denial, and process restarts.
 
 Validation gate: expense/income CRUD and filtering work against Room; edit preserves receipts; category reassignment never deletes transactions; inaccessible or corrupt images produce useful errors.
 
 ## Phase 5 — Dashboard, budgets, and analytics
 
-- [ ] Build the dashboard header, profile switcher, prominent privacy eye control, summary cards, recent activity, and quick actions.
-- [ ] Calculate balance as income minus expenses; calculate monthly spending and remaining budget without treating budgets as income.
-- [ ] Implement overall monthly and category budgets with create/edit/delete, uniqueness rules, progress, remaining amounts, and overspending indicators.
-- [ ] Use transaction dates and category scope for budget calculations; distinguish overall and category budgets to avoid double counting.
-- [ ] Implement week/month/last-month/year/custom-range filters and range validation.
-- [ ] Add category distribution, spending trend, income-versus-expense, and budget-versus-actual charts and highest-spending summaries.
-- [ ] Prevent hidden chart geometry, labels, semantics, or progress from revealing financial values.
-- [ ] Use efficient aggregate queries and reactive updates. Add a memory cache only if measurement justifies it, with account/profile/range/filter keys and explicit invalidation.
+- [x] Build the dashboard header, profile switcher, prominent privacy eye control, summary cards, recent activity, and quick actions.
+- [x] Calculate balance as income minus expenses; calculate monthly spending and remaining budget without treating budgets as income.
+- [x] Implement overall monthly and category budgets with create/edit/delete, uniqueness rules, progress, remaining amounts, and overspending indicators.
+- [x] Use transaction dates and category scope for budget calculations; distinguish overall and category budgets to avoid double counting.
+- [x] Implement week/month/last-month/year/custom-range filters and range validation.
+- [x] Add category distribution, spending trend, income-versus-expense, and budget-versus-actual charts and highest-spending summaries.
+- [x] Prevent hidden chart geometry, labels, semantics, or progress from revealing financial values.
+- [x] Use efficient aggregate queries and reactive updates. Add a memory cache only if measurement justifies it, with account/profile/range/filter keys and explicit invalidation.
 
 Validation gate: summaries and budget calculations match independent fixtures; edits immediately refresh summaries; every report is profile scoped; hidden state masks charts and all financial summaries.
 
 ## Phase 6 — Settings, export, backup, and reminders
 
-- [ ] Connect account information, password change, logout, profiles, categories, security, appearance, and preference settings.
-- [ ] Persist theme, automatic privacy lock, screenshot protection, first weekday, date format, and validated active-profile preferences with DataStore.
-- [ ] Implement profile CSV and JSON export through Storage Access Framework, with proper quoting, explicit sensitive-data authorization, and spreadsheet formula-injection handling.
-- [ ] Define a versioned full-account backup format including profiles, categories, transactions, budgets, receipts, relationships, and relevant preferences.
-- [ ] Encrypt backups with authenticated encryption and a separately derived backup-passphrase key; use fresh salts/nonces and validate bounded inputs.
-- [ ] Validate backup version, authentication, lengths, duplicate IDs, currency/amount/date values, ownership, references, and attachment paths before mutation.
-- [ ] Restore with explicit confirmation, transactional database writes, staged attachment files, safe account/profile ID mapping, and no silent overwrite.
-- [ ] Explain backup-passphrase loss, credential loss, device/Keystore limitations, export confidentiality, and database-at-rest limitations accurately.
-- [ ] Add daily expense and monthly budget-review reminders using local scheduling, opt-in notification permission, and generic notification text without amounts.
-- [ ] Confirm destructive profile-data and account-data deletion and remove associated private receipt files.
+- [x] Connect account information, password change, logout, profiles, categories, security, appearance, and preference settings.
+- [x] Persist theme, automatic privacy lock, screenshot protection, first weekday, date format, and validated active-profile preferences with DataStore.
+- [x] Implement profile CSV and JSON export through Storage Access Framework, with proper quoting, explicit sensitive-data authorization, and spreadsheet formula-injection handling.
+- [x] Define a versioned full-account backup format including profiles, categories, transactions, budgets, receipts, relationships, and relevant preferences.
+- [x] Encrypt backups with authenticated encryption and a separately derived backup-passphrase key; use fresh salts/nonces and validate bounded inputs.
+- [x] Validate backup version, authentication, lengths, duplicate IDs, currency/amount/date values, ownership, references, and attachment paths before mutation.
+- [x] Restore with explicit confirmation, transactional database writes, staged attachment files, safe account/profile ID mapping, and no silent overwrite.
+- [x] Explain backup-passphrase loss, credential loss, device/Keystore limitations, export confidentiality, and database-at-rest limitations accurately.
+- [x] Add daily expense and monthly budget-review reminders using local scheduling, opt-in notification permission, and generic notification text without amounts.
+- [x] Confirm destructive profile-data and account-data deletion and remove associated private receipt files.
 
 Validation gate: CSV/JSON output contains only the authorized profile; encrypted backup round-trips all supported data; wrong passwords, tampering, malformed archives, and interrupted restoration leave existing data intact.
 
 ## Phase 7 — Polish, security review, and delivery
 
-- [ ] Refine responsive layouts, empty states, navigation/back behavior, forms, loading/errors, and subtle transitions.
+- [x] Refine responsive layouts, empty states, navigation/back behavior, forms, loading/errors, and subtle transitions. Device layout verification remains required.
 - [ ] Verify screen-reader semantics, privacy-safe content descriptions, touch targets, contrast, font scaling, and reduced-motion behavior.
-- [ ] Review main-thread work, query indexes, image memory, large histories, repeated taps, rapid switching, lifecycle races, and process restoration.
+- [x] Review main-thread work, query indexes, image memory, repeated taps, rapid switching, and lifecycle races. Device memory/large-history benchmarks remain pending.
 - [ ] Run unit, database, UI, lint, and build checks; diagnose and fix failures without disabling assertions or substituting trivial checks.
-- [ ] Add README build/run/test instructions and a security/backup limitations document.
-- [ ] Save tested reusable environment installation/startup instructions where needed; distinguish saved configuration from publication and runtime validation.
-- [ ] Review changes for credentials, generated outputs, unnecessary permissions, placeholders, fake data, unfinished core flows, and unintended attribution.
-- [ ] Record exact verification outcomes and remaining limitations. Do not claim production readiness or complete acceptance for unexecuted scenarios.
+- [x] Add README build/run/test instructions and a security/backup limitations document.
+- [ ] Save tested reusable environment installation/startup instructions where needed; distinguish saved configuration from publication and runtime validation. The repository scripts are tested; configuration persistence is recorded after the draft save.
+- [x] Review changes for credentials, generated outputs, unnecessary permissions, placeholders, fake data, unfinished core flows, and unintended attribution.
+- [x] Record exact verification outcomes and remaining limitations. Device-only acceptance remains open; production readiness is not claimed.
 
 ## Verification matrix
 
