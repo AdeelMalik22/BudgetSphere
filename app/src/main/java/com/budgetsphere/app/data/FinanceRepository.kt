@@ -8,26 +8,40 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Currency
 import java.util.UUID
 import java.time.LocalDate
 import java.time.YearMonth
 
 fun newId(): String = UUID.randomUUID().toString()
-@Singleton class FinanceRepository @Inject constructor(val db: BudgetDatabase, private val accounts: AccountRepository, private val settings: Settings, private val privacy: PrivacyManager,private val receiptPaths: ReceiptPaths): FinanceStore {
-    val dao=db.dao()
+@Singleton class FinanceRepository @Inject constructor(val db: BudgetDatabase, private val accounts: AccountRepository, private val settings: Settings, private val privacy: PrivacyManager,private val receiptPaths: ReceiptPaths, val dao: FinanceDao): FinanceStore {
+    private val selectionMutex=Mutex()
+    private val selectionLock=Any()
+    private var selectionGeneration=0L
     private val _workspace=MutableStateFlow<Workspace?>(null)
     override val workspace=_workspace.asStateFlow()
-    override fun clearWorkspace() { _workspace.value=null; privacy.bind(null) }
+    private fun beginSelection(): Long=synchronized(selectionLock) {
+        selectionGeneration++;_workspace.value=null;privacy.bind(null);selectionGeneration
+    }
+    override fun clearWorkspace() {beginSelection()}
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun profiles()=accounts.session.flatMapLatest { if(it==null) flowOf(emptyList()) else dao.profiles(it.id).map {list->list.map(ProfileEntity::toDomain)} }
     override suspend fun select(profileId: String) {
-        clearWorkspace()
-        withContext(Dispatchers.IO) {
-            val account=accounts.requireAccount().id
-            val profile=dao.profile(account,profileId)?:error("Profile no longer exists")
-            require(accounts.requireAccount().id==account)
-            settings.active(account,profileId)
-            val scope=Scope(account,profileId);privacy.bind(scope);_workspace.value=Workspace(scope,profile.toDomain())
+        val expected=beginSelection()
+        selectionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                val account=accounts.requireAccount().id
+                val profile=dao.profile(account,profileId)?:error("Profile no longer exists")
+                synchronized(selectionLock) {if(selectionGeneration!=expected || accounts.session.value?.id!=account)throw CancellationException("Workspace selection was replaced")}
+                settings.active(account,profileId)
+                currentCoroutineContext().ensureActive()
+                synchronized(selectionLock) {
+                    if(selectionGeneration!=expected || accounts.session.value?.id!=account)throw CancellationException("Workspace selection was replaced")
+                    val scope=Scope(account,profileId);privacy.bind(scope);_workspace.value=Workspace(scope,profile.toDomain())
+                }
+            }
         }
     }
     suspend fun validate(scope: Scope): ProfileEntity {

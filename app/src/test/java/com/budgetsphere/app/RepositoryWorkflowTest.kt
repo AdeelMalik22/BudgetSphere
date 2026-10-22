@@ -30,7 +30,7 @@ class RepositoryWorkflowTest {
         context=ApplicationProvider.getApplicationContext()
         db=Room.inMemoryDatabaseBuilder(context,BudgetDatabase::class.java).build()
         accounts=AccountRepository(db.dao(),PasswordHasher(),PrivacyManager())
-        settings=Settings(context);finance=FinanceRepository(db,accounts,settings,PrivacyManager(),ReceiptPaths(context));receipts=ReceiptStore(context,finance,ReceiptPaths(context));portability=Portability(context,finance,accounts,receipts,settings)
+        settings=Settings(context);finance=FinanceRepository(db,accounts,settings,PrivacyManager(),ReceiptPaths(context),db.dao());receipts=ReceiptStore(context,finance,ReceiptPaths(context));portability=Portability(context,finance,accounts,receipts,settings)
     }
     @After fun close(){db.close()}
     private suspend fun signup(name: String="owner") {accounts.signup(name,name,"a secure local password".toCharArray(),"a secure local password".toCharArray())}
