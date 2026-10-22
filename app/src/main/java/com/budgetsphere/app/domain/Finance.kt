@@ -18,7 +18,7 @@ object Money {
         } } catch (_: ArithmeticException) { throw IllegalArgumentException("Use at most $scale decimal places and a smaller amount") }
     }
     fun decimal(minor: Long, currency: String): String = BigDecimal.valueOf(minor, Currency.getInstance(currency).defaultFractionDigits.coerceAtLeast(0)).toPlainString()
-    fun format(minor: Long, currency: String): String = NumberFormat.getCurrencyInstance().apply { this.currency = Currency.getInstance(currency) }.format(BigDecimal(decimal(minor, currency)))
+    fun format(minor: Long, currency: String): String = NumberFormat.getCurrencyInstance().apply { this.currency = Currency.getInstance(currency);minimumFractionDigits=this.currency.defaultFractionDigits.coerceAtLeast(0);maximumFractionDigits=minimumFractionDigits }.format(BigDecimal(decimal(minor, currency)))
     fun sum(values: List<Long>): Long = values.fold(0L, Math::addExact)
 }
 data class Scope(val account: String, val profile: String)

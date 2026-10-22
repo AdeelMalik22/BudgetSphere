@@ -14,6 +14,15 @@ class FinanceTest {
         assertThrows(IllegalArgumentException::class.java) { Money.parse("0","USD") }
         assertThrows(IllegalArgumentException::class.java) { Money.parse("999999999999999999999","USD") }
     }
+    @Test fun formattingPreservesZeroAndThreeDecimalCurrencies() {
+        val previous=java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.US)
+            assertTrue(Money.format(1234,"KWD").contains("1.234"))
+            assertFalse(Money.format(123,"JPY").contains(".00"))
+            assertTrue(Money.format(12345,"USD").contains("123.45"))
+        }finally{java.util.Locale.setDefault(previous)}
+    }
     @Test fun checkedArithmeticAndBalance() {
         assertEquals(300L, Totals(500,200).balance)
         assertEquals(-100L, remaining(100,200))
