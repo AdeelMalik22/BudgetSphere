@@ -14,5 +14,5 @@ import javax.inject.Singleton
     @Provides fun dao(db: BudgetDatabase)=db.dao()
     @Provides fun accountStore(repository: AccountRepository): AccountStore = repository
     @Provides fun financeStore(repository: FinanceRepository): FinanceStore = repository
-    @Provides @Singleton fun passwords()=PasswordHasher()
+    @Provides @Singleton fun passwords(): PasswordDerivation=PasswordHasher()
 }
