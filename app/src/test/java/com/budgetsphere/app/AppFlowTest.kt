@@ -17,6 +17,8 @@ class AppFlowTest {
     private fun waitFor(text: String) {compose.waitUntil(30000){compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()}}
     @Test fun signupCreateProfileAddExpenseAndPrivacyNavigation() {
         compose.onNodeWithText("New here? Create local account").performScrollTo().performClick()
+        compose.onNodeWithText("Create account").performScrollTo().performClick()
+        compose.onNodeWithText("Name must be 1–100 characters").assertExists()
         compose.onNodeWithText("Full name").performTextInput("Test Owner")
         compose.onNodeWithText("Username or email").performTextInput("ui-owner")
         compose.onNodeWithText("Password").performTextInput("a secure local password")

@@ -19,8 +19,8 @@ val colorChoices=listOf(0xFF047857,0xFF1D4ED8,0xFF7E22CE,0xFFB45309,0xFFBE123C,0
 @Composable fun MoneyText(amount: Long,currency: String,hidden: Boolean,large: Boolean=false) {
     Text(if(hidden) "••••••" else Money.format(amount,currency),style=if(large) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleMedium)
 }
-@Composable fun FormField(label: String,value: String,onChange: (String)->Unit,password: Boolean=false,numeric: Boolean=false,multiline: Boolean=false) {
-    OutlinedTextField(value,onChange,label={Text(label)},modifier=Modifier.fillMaxWidth(),singleLine=!multiline,
+@Composable fun FormField(label: String,value: String,onChange: (String)->Unit,password: Boolean=false,numeric: Boolean=false,multiline: Boolean=false,error: String?=null) {
+    OutlinedTextField(value,onChange,label={Text(label)},modifier=Modifier.fillMaxWidth(),singleLine=!multiline,isError=error!=null,supportingText=if(error!=null){{Text(error)}}else null,
         visualTransformation=if(password) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions=KeyboardOptions(keyboardType=if(password) KeyboardType.Password else if(numeric) KeyboardType.Decimal else KeyboardType.Text,autoCorrectEnabled=!password))
 }
@@ -38,3 +38,5 @@ val colorChoices=listOf(0xFF047857,0xFF1D4ED8,0xFF7E22CE,0xFFB45309,0xFFBE123C,0
 @Composable fun ConfirmDialog(title: String,body: String,onDismiss: ()->Unit,onConfirm: ()->Unit) {
     AlertDialog(onDismissRequest=onDismiss,title={Text(title)},text={Text(body)},confirmButton={TextButton(onClick=onConfirm){Text("Delete",color=MaterialTheme.colorScheme.error)}},dismissButton={TextButton(onClick=onDismiss){Text("Cancel")}})
 }
+
+fun validationError(check: ()->Any?): String? = try {check();null}catch(e:Exception){e.message?:"Check this value"}

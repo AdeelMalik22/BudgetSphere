@@ -28,10 +28,12 @@ import com.budgetsphere.app.domain.*
 }
 @Composable private fun CategoryForm(data: WorkspaceData,vm: AppViewModel,original: Category?,dismiss: ()->Unit) {
     var name by remember {mutableStateOf(original?.name?:"")};var kind by remember {mutableStateOf(original?.kind?:"EXPENSE")};var icon by remember {mutableStateOf(original?.icon?:"Category")};var color by remember {mutableStateOf(original?.color?:colorChoices.first())};val busy by vm.busy.collectAsState()
+    var submitted by remember {mutableStateOf(false)}
+    val nameError=validationError{Validation.name(name)}
     AlertDialog(onDismissRequest=dismiss,title={Text(if(original==null)"New category" else "Edit category")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
-        FormField("Category name",name,{name=it})
+        FormField("Category name",name,{name=it},error=if(submitted)nameError else null)
         if(original==null)Choice("Type",kind,listOf("EXPENSE" to "Expense","INCOME" to "Income"),{kind=it})
         Choice("Icon",icon,iconNames.map {it to it},{icon=it})
         Choice("Color",color.toString(),colorChoices.mapIndexed {i,c->c.toString() to listOf("Emerald","Blue","Violet","Amber","Rose","Navy")[i]},{color=it.toLong()})
-    }},confirmButton={TextButton(enabled=!busy,onClick={vm.perform("Category saved"){vm.finance.saveCategory(data.workspace.scope,original?.id,name,kind,color,icon);dismiss()}}){Text("Save")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
+    }},confirmButton={TextButton(enabled=!busy,onClick={submitted=true;if(nameError==null)vm.perform("Category saved"){vm.finance.saveCategory(data.workspace.scope,original?.id,name,kind,color,icon);dismiss()}}){Text("Save")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
 }

@@ -36,9 +36,12 @@ import java.time.YearMonth
 @Composable private fun BudgetForm(data: WorkspaceData,vm: AppViewModel,original: Budget?,dismiss: ()->Unit) {
     var category by remember {mutableStateOf(original?.categoryId?:"")};var month by remember {mutableStateOf(original?.month?:YearMonth.now().toString())};var amount by remember {mutableStateOf(original?.let {Money.decimal(it.amount,data.workspace.profile.currency)}?:"")}
     val hidden by vm.hidden.collectAsState();val busy by vm.busy.collectAsState()
+    var submitted by remember {mutableStateOf(false)}
+    val amountError=validationError{Money.parse(amount,data.workspace.profile.currency)}
+    val monthError=validationError{require(runCatching {YearMonth.parse(month).year in 1900..2200}.getOrDefault(false)){"Use YYYY-MM with a year between 1900 and 2200"}}
     if(hidden){LaunchedEffect(Unit){dismiss()};return}
     AlertDialog(onDismissRequest=dismiss,title={Text(if(original==null)"New budget" else "Edit budget")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
         Choice("Category",category,listOf("" to "Overall monthly budget")+data.categories.filter {it.kind=="EXPENSE"}.map {it.id to it.name},{category=it})
-        FormField("Month (YYYY-MM)",month,{month=it});FormField("Amount (${data.workspace.profile.currency})",amount,{amount=it},numeric=true)
-    }},confirmButton={TextButton(enabled=!busy,onClick={vm.perform("Budget saved"){vm.finance.saveBudget(data.workspace.scope,original?.id,category.ifBlank {null},month,amount);dismiss()}}){Text("Save")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
+        FormField("Month (YYYY-MM)",month,{month=it},error=if(submitted)monthError else null);FormField("Amount (${data.workspace.profile.currency})",amount,{amount=it},numeric=true,error=if(submitted)amountError else null)
+    }},confirmButton={TextButton(enabled=!busy,onClick={submitted=true;if(amountError==null && monthError==null)vm.perform("Budget saved"){vm.finance.saveBudget(data.workspace.scope,original?.id,category.ifBlank {null},month,amount);dismiss()}}){Text("Save")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
 }

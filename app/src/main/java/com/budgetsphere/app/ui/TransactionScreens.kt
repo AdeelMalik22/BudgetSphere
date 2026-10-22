@@ -59,20 +59,24 @@ import java.time.format.DateTimeFormatter
     val scope=data.workspace.scope
     var title by remember {mutableStateOf(original?.title?:"")};var amount by remember {mutableStateOf(original?.let {Money.decimal(it.amount,it.currency)}?:"")};var kind by remember {mutableStateOf(original?.kind?:initialKind)};var category by remember {mutableStateOf(original?.categoryId?:"")};var date by remember {mutableStateOf(original?.let {LocalDate.ofEpochDay(it.date).toString()}?:LocalDate.now().toString())};var description by remember {mutableStateOf(original?.description?:"")};var notes by remember {mutableStateOf(original?.notes?:"")};var payment by remember {mutableStateOf(original?.payment?:"")};var tags by remember {mutableStateOf(original?.tags?:"")};var picker by remember {mutableStateOf(false)}
     val busy by vm.busy.collectAsState();val hidden by vm.hidden.collectAsState()
+    var submitted by remember {mutableStateOf(false)}
+    val titleError=validationError{Validation.name(title)}
+    val amountError=validationError{Money.parse(amount,data.workspace.profile.currency)}
+    val categoryError=if(data.categories.any {it.id==category && it.kind==kind})null else "Choose a category"
     if(hidden) {EmptyState("Unlock financial information","Use the eye control to authenticate before entering or editing amounts.");return}
     LazyColumn(Modifier.fillMaxSize().imePadding(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {Text(if(original==null)"New transaction" else "Edit transaction",style=MaterialTheme.typography.headlineMedium)}
         item {Choice("Type",kind,listOf("EXPENSE" to "Expense","INCOME" to "Income"),{kind=it;category=""})}
-        item {FormField("Amount (${data.workspace.profile.currency})",amount,{amount=it},numeric=true)}
-        item {FormField(if(kind=="INCOME")"Income source" else "Expense title",title,{title=it})}
-        item {Choice("Category",category,data.categories.filter {it.kind==kind}.map {it.id to it.name},{category=it})}
+        item {FormField("Amount (${data.workspace.profile.currency})",amount,{amount=it},numeric=true,error=if(submitted)amountError else null)}
+        item {FormField(if(kind=="INCOME")"Income source" else "Expense title",title,{title=it},error=if(submitted)titleError else null)}
+        item {Choice("Category",category,data.categories.filter {it.kind==kind}.map {it.id to it.name},{category=it});if(submitted && categoryError!=null)Text(categoryError,color=MaterialTheme.colorScheme.error)}
         item {OutlinedButton(onClick={picker=true}){Icon(Icons.Outlined.CalendarMonth,null);Text(date)}}
         item {FormField("Description (optional)",description,{description=it},multiline=true)}
         item {FormField("Notes (optional)",notes,{notes=it},multiline=true)}
         item {FormField("Payment method (optional)",payment,{payment=it})}
         item {FormField("Tags (comma-separated, optional)",tags,{tags=it})}
         item {Text("Save the transaction to add or manage its receipts.",style=MaterialTheme.typography.bodySmall)}
-        item {Button(enabled=!busy,onClick={vm.perform("Transaction saved") {val id=vm.finance.saveTransaction(scope,original,title,amount,kind,category,LocalDate.parse(date),description,notes,payment,tags);onSaved(id)}},modifier=Modifier.fillMaxWidth()){Text(if(busy)"Saving…" else "Save transaction")}}
+        item {Button(enabled=!busy,onClick={submitted=true;if(listOf(titleError,amountError,categoryError).all {it==null})vm.perform("Transaction saved") {val id=vm.finance.saveTransaction(scope,original,title,amount,kind,category,LocalDate.parse(date),description,notes,payment,tags);onSaved(id)}},modifier=Modifier.fillMaxWidth()){Text(if(busy)"Saving…" else "Save transaction")}}
     }
     if(picker) {
         val state=rememberDatePickerState(initialSelectedDateMillis=LocalDate.parse(date).toEpochDay()*86400000L,yearRange=1900..2200)

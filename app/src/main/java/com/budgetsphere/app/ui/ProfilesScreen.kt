@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.budgetsphere.app.domain.Profile
+import com.budgetsphere.app.domain.Validation
 import java.util.Currency
 
 @Composable fun ProfilesScreen(vm: AppViewModel,onSelected: ()->Unit) {
@@ -38,11 +39,13 @@ import java.util.Currency
 @Composable private fun ProfileForm(profile: Profile?,vm: AppViewModel,dismiss: ()->Unit) {
     var name by remember {mutableStateOf(profile?.name?:"")};var description by remember {mutableStateOf(profile?.description?:"")};var currency by remember {mutableStateOf(profile?.currency?:"PKR")};var color by remember {mutableStateOf(profile?.color?:colorChoices.first())};var icon by remember {mutableStateOf(profile?.icon?:"Person")}
     val busy by vm.busy.collectAsState()
+    var submitted by remember {mutableStateOf(false)}
+    val nameError=validationError{Validation.name(name)}
     AlertDialog(onDismissRequest=dismiss,title={Text(if(profile==null)"New profile" else "Edit profile")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
-        FormField("Profile name",name,{name=it});FormField("Description (optional)",description,{description=it})
+        FormField("Profile name",name,{name=it},error=if(submitted)nameError else null);FormField("Description (optional)",description,{description=it})
         Choice("Currency",currency,Currency.getAvailableCurrencies().filter {it.defaultFractionDigits>=0}.sortedBy {it.currencyCode}.map {it.currencyCode to it.currencyCode},{currency=it})
         Choice("Icon",icon,iconNames.map {it to it},{icon=it})
         Choice("Color",color.toString(),colorChoices.mapIndexed {i,c->c.toString() to listOf("Emerald","Blue","Violet","Amber","Rose","Navy")[i]},{color=it.toLong()})
         Text("Currency cannot change once this profile has transactions or budgets. No exchange conversion is performed.",style=MaterialTheme.typography.bodySmall)
-    }},confirmButton={TextButton(enabled=!busy,onClick={vm.perform {val saved=vm.finance.saveProfile(profile?.id,name,description,currency,color,icon);vm.finance.select(saved.id);dismiss()}}){Text("Save")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
+    }},confirmButton={TextButton(enabled=!busy,onClick={submitted=true;if(nameError==null)vm.perform {val saved=vm.finance.saveProfile(profile?.id,name,description,currency,color,icon);vm.finance.select(saved.id);dismiss()}}){Text("Save")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
 }
