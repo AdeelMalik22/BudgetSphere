@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.budgetsphere.app.data.*
@@ -57,7 +58,7 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun TransactionForm(data: WorkspaceData,vm: AppViewModel,original: FinancialTransaction?,initialKind: String,onSaved: (String)->Unit) {
     val scope=data.workspace.scope
-    var title by remember {mutableStateOf(original?.title?:"")};var amount by remember {mutableStateOf(original?.let {Money.decimal(it.amount,it.currency)}?:"")};var kind by remember {mutableStateOf(original?.kind?:initialKind)};var category by remember {mutableStateOf(original?.categoryId?:"")};var date by remember {mutableStateOf(original?.let {LocalDate.ofEpochDay(it.date).toString()}?:LocalDate.now().toString())};var description by remember {mutableStateOf(original?.description?:"")};var notes by remember {mutableStateOf(original?.notes?:"")};var payment by remember {mutableStateOf(original?.payment?:"")};var tags by remember {mutableStateOf(original?.tags?:"")};var picker by remember {mutableStateOf(false)}
+    var title by rememberSaveable {mutableStateOf(original?.title?:"")};var amount by rememberSaveable {mutableStateOf(original?.let {Money.decimal(it.amount,it.currency)}?:"")};var kind by rememberSaveable {mutableStateOf(original?.kind?:initialKind)};var category by rememberSaveable {mutableStateOf(original?.categoryId?:"")};var date by rememberSaveable {mutableStateOf(original?.let {LocalDate.ofEpochDay(it.date).toString()}?:LocalDate.now().toString())};var description by rememberSaveable {mutableStateOf(original?.description?:"")};var notes by rememberSaveable {mutableStateOf(original?.notes?:"")};var payment by rememberSaveable {mutableStateOf(original?.payment?:"")};var tags by rememberSaveable {mutableStateOf(original?.tags?:"")};var picker by rememberSaveable {mutableStateOf(false)}
     val busy by vm.busy.collectAsState();val hidden by vm.hidden.collectAsState()
     var submitted by remember {mutableStateOf(false)}
     val titleError=validationError{Validation.name(title)}
