@@ -1,0 +1,4 @@
+<resources>
+    <style name="Theme.BudgetSphere" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">false</item><item name="android:windowActionModeOverlay">true</item><item name="android:windowBackground">#14213D</item></style>
+    <style name="Theme.BudgetSphere.Splash" parent="Theme.SplashScreen"><item name="windowSplashScreenBackground">#14213D</item><item name="windowSplashScreenAnimatedIcon">@drawable/ic_sphere</item><item name="postSplashScreenTheme">@style/Theme.BudgetSphere</item></style>
+</resources>

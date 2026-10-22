@@ -12,8 +12,8 @@ This plan is the implementation checklist and delivery record. A feature is comp
 - Repository-local Git author: Subhan Adeel <ms1640070@gmail.com>.
 - Initial Gradle, Android manifest, branding, application, money/date utilities, and Room model/DAO files have been created. These are preliminary and have not yet passed build or security validation.
 - Android SDK and Gradle preparation has begun. Toolchain installation and dependency compatibility still need verification.
-- Implementation is paused at the user's request to write this plan first.
-- No commits or pushes have been made. Do not add assistant contributor attribution or co-author trailers.
+- Implementation has resumed. Each feature or fix is committed and pushed separately after its relevant checks.
+- The plan has been committed and pushed to `main`; Git write access is verified. Do not add assistant contributor attribution or co-author trailers.
 
 ## Technical direction
 
