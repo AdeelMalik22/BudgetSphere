@@ -40,7 +40,7 @@ import java.util.Currency
     val busy by vm.busy.collectAsState()
     AlertDialog(onDismissRequest=dismiss,title={Text(if(profile==null)"New profile" else "Edit profile")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
         FormField("Profile name",name,{name=it});FormField("Description (optional)",description,{description=it})
-        Choice("Currency",currency,Currency.getAvailableCurrencies().sortedBy {it.currencyCode}.map {it.currencyCode to it.currencyCode},{currency=it})
+        Choice("Currency",currency,Currency.getAvailableCurrencies().filter {it.defaultFractionDigits>=0}.sortedBy {it.currencyCode}.map {it.currencyCode to it.currencyCode},{currency=it})
         Choice("Icon",icon,iconNames.map {it to it},{icon=it})
         Choice("Color",color.toString(),colorChoices.mapIndexed {i,c->c.toString() to listOf("Emerald","Blue","Violet","Amber","Rose","Navy")[i]},{color=it.toLong()})
         Text("Currency cannot change once this profile has transactions or budgets. No exchange conversion is performed.",style=MaterialTheme.typography.bodySmall)

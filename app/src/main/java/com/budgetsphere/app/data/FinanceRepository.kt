@@ -36,7 +36,7 @@ fun newId(): String = UUID.randomUUID().toString()
     }
     override suspend fun saveProfile(id: String?, name: String, description: String, currency: String, color: Long, icon: String) = withContext(Dispatchers.IO) {
         val account=accounts.requireAccount().id
-        Currency.getInstance(currency)
+        require(Currency.getInstance(currency).defaultFractionDigits>=0) {"Choose a supported monetary currency"}
         require(description.length<=1000)
         val existing=id?.let { dao.profile(account,it)?:error("Profile no longer exists") }
         if(existing!=null && existing.currency!=currency) require(dao.transactionList(account,existing.id).isEmpty() && dao.budgetList(account,existing.id).isEmpty()) { "Currency cannot change while transactions or budgets exist. Create a separate profile instead." }

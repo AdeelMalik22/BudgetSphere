@@ -5,6 +5,7 @@ import org.junit.Test
 import java.time.LocalDate
 class FinanceTest {
     @Test fun moneyUsesCurrencyPrecision() {
+        assertThrows(IllegalArgumentException::class.java) { Money.parse("1","XXX") }
         assertEquals(12345L,Money.parse("123.45","USD"))
         assertEquals(123L,Money.parse("123","JPY"))
         assertEquals(1234L,Money.parse("1.234","KWD"))

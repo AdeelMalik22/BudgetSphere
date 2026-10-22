@@ -9,7 +9,8 @@ import java.util.Currency
 
 object Money {
     fun parse(input: String, currency: String): Long {
-        val scale = Currency.getInstance(currency).defaultFractionDigits.coerceAtLeast(0)
+        val scale = Currency.getInstance(currency).defaultFractionDigits
+        require(scale>=0) {"Choose a supported monetary currency"}
         val amount = input.trim().toBigDecimalOrNull() ?: throw IllegalArgumentException("Enter a valid amount")
         require(amount > BigDecimal.ZERO) { "Amount must be greater than zero" }
         return try { amount.setScale(scale, RoundingMode.UNNECESSARY).movePointRight(scale).longValueExact().also {
