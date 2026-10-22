@@ -57,13 +57,16 @@ import java.time.YearMonth
             val income=report?.totals?.income?:0;val expenses=report?.totals?.expense?:0
             item {SectionCard("Income vs expenses"){Text("Income");MoneyText(income,currency,hidden);Text("Expenses");MoneyText(expenses,currency,hidden);if(!hidden){val largest=maxOf(income,expenses,1).toDouble();LinearProgressIndicator(progress={(income/largest).toFloat()},modifier=Modifier.fillMaxWidth());LinearProgressIndicator(progress={(expenses/largest).toFloat()},color=MaterialTheme.colorScheme.error,modifier=Modifier.fillMaxWidth())}}}
             item {SectionCard("Category distribution"){CategoryChart(data,range.getOrThrow(),hidden)}}
-            item {SectionCard("Monthly spending trend") {
+            item {SectionCard("Monthly trend · up to 12 months in range") {
                 if(hidden){Text("••••••");Text("Chart hidden for privacy")}
                 else {
-                    val months=(5 downTo 0).map {YearMonth.now().minusMonths(it.toLong())}
-                    val values=months.map {month->data.ledger.spending(month)}
+                    val selectedRange=range.getOrThrow()
+                    val firstMonth=YearMonth.from(LocalDate.ofEpochDay(selectedRange.start));val lastMonth=YearMonth.from(LocalDate.ofEpochDay(selectedRange.end))
+                    val count=minOf(12,java.time.temporal.ChronoUnit.MONTHS.between(firstMonth,lastMonth).toInt()+1)
+                    val months=(count-1 downTo 0).map {lastMonth.minusMonths(it.toLong())}
+                    val values=months.map {month->report?.months?.get(month)?:0L}
                     val color=MaterialTheme.colorScheme.primary
-                    Canvas(Modifier.fillMaxWidth().height(120.dp)) {val max=values.maxOrNull()?.coerceAtLeast(1)?.toDouble()?:1.0;val width=size.width/6;values.forEachIndexed {index,value->drawLine(color,Offset(width*(index+.5f),size.height),Offset(width*(index+.5f),size.height-(value/max*size.height).toFloat()),strokeWidth=width*.55f)} }
+                    Canvas(Modifier.fillMaxWidth().height(120.dp)) {val max=values.maxOrNull()?.coerceAtLeast(1)?.toDouble()?:1.0;val width=size.width/months.size;values.forEachIndexed {index,value->drawLine(color,Offset(width*(index+.5f),size.height),Offset(width*(index+.5f),size.height-(value/max*size.height).toFloat()),strokeWidth=width*.55f)} }
                     months.forEachIndexed {i,month->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(month.toString());MoneyText(values[i],currency,false)}}
                 }
             }}
