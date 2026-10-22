@@ -66,6 +66,17 @@ class RepositoryWorkflowTest {
         finance.deleteTransaction(scope,tx);assertFalse(file.exists());assertFalse(thumb.exists());assertTrue(retained.exists())
         finance.deleteProfile(friend.id);assertFalse(retained.exists())
     }
+    @Test fun receiptImportsNormalizeCameraOrientation()=runBlocking {
+        signup();val account=accounts.requireAccount().id;val p=profile("Camera");val scope=Scope(account,p.id)
+        val category=db.dao().categoryList(account,p.id).first {it.kind=="EXPENSE"}
+        val tx=finance.saveTransaction(scope,null,"Camera receipt","1","EXPENSE",category.id,LocalDate.now(),"","","","")
+        val image=File(context.cacheDir,"rotated.jpg").apply {writeBytes(java.util.Base64.getDecoder().decode("/9j/4AAQSkZJRgABAQAAAQABAAD/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIABADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwAooopn5wf/2Q=="))}
+        receipts.import(scope,tx,Uri.fromFile(image))
+        val saved=db.dao().attachmentList(account,p.id).single()
+        val bounds=android.graphics.BitmapFactory.Options().apply {inJustDecodeBounds=true}
+        android.graphics.BitmapFactory.decodeFile(receipts.file(scope,saved.filename).path,bounds)
+        assertEquals(8,bounds.outWidth);assertEquals(16,bounds.outHeight)
+    }
     @Test fun backupRoundTripPreservesRelationshipsAndRejectsTamperingWithoutOverwrites()=runBlocking {
         signup();val account=accounts.requireAccount().id;val p=profile("Personal");val scope=Scope(account,p.id);finance.select(p.id)
         val category=db.dao().categoryList(account,p.id).first {it.kind=="EXPENSE"}

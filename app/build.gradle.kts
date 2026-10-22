@@ -43,6 +43,7 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.57.2")
     ksp("com.google.dagger:hilt-compiler:2.57.2")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("androidx.exifinterface:exifinterface:1.4.2")
     implementation("androidx.work:work-runtime-ktx:2.10.5")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.16.1")

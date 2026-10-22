@@ -3,6 +3,8 @@ package com.budgetsphere.app.data
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import androidx.exifinterface.media.ExifInterface
 import android.net.Uri
 import com.budgetsphere.app.domain.Scope
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,7 +30,13 @@ import java.io.File
             val bounds=BitmapFactory.Options().apply {inJustDecodeBounds=true};BitmapFactory.decodeFile(staging.path,bounds)
             require(bounds.outWidth>0 && bounds.outHeight>0 && bounds.outWidth.toLong()*bounds.outHeight<=80_000_000L) {"Unsupported or oversized image"}
             var sample=1;while(maxOf(bounds.outWidth,bounds.outHeight)/sample>2048)sample*=2
-            val bitmap=BitmapFactory.decodeFile(staging.path,BitmapFactory.Options().apply {inSampleSize=sample})?:error("Corrupt image")
+            val decoded=BitmapFactory.decodeFile(staging.path,BitmapFactory.Options().apply {inSampleSize=sample})?:error("Corrupt image")
+            val orientation=runCatching {ExifInterface(staging)}.getOrNull()
+            val matrix=Matrix().apply {
+                if(orientation?.isFlipped==true)postScale(-1f,1f)
+                postRotate((orientation?.rotationDegrees?:0).toFloat())
+            }
+            val bitmap=if(matrix.isIdentity)decoded else try {Bitmap.createBitmap(decoded,0,0,decoded.width,decoded.height,matrix,true)}finally{decoded.recycle()}
             try {
                 target.outputStream().use {check(bitmap.compress(Bitmap.CompressFormat.JPEG,85,it))}
                 val ratio=320f/maxOf(bitmap.width,bitmap.height).coerceAtLeast(320)
