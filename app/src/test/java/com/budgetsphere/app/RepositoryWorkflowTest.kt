@@ -60,6 +60,9 @@ class RepositoryWorkflowTest {
         val thumb=receipts.file(scope,"$receipt-thumb.jpg");thumb.writeText("private thumbnail")
         db.dao().insertAttachment(AttachmentEntity(account,personal.id,receipt,tx,file.name,thumb.name))
         val retained=receipts.file(other,"${newId()}.jpg");retained.parentFile!!.mkdirs();retained.writeText("other profile")
+        val orphan=receipts.file(scope,"${newId()}.jpg").apply {writeText("interrupted import");setLastModified(System.currentTimeMillis()-172800000L)}
+        file.setLastModified(System.currentTimeMillis()-172800000L)
+        receipts.collectOrphans(scope);assertFalse(orphan.exists());assertTrue(file.exists())
         finance.deleteTransaction(scope,tx);assertFalse(file.exists());assertFalse(thumb.exists());assertTrue(retained.exists())
         finance.deleteProfile(friend.id);assertFalse(retained.exists())
     }

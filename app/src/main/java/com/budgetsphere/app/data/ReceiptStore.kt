@@ -49,6 +49,8 @@ import java.io.File
         finance.validate(scope)
         val referenced=finance.dao.attachmentList(scope.account,scope.profile).flatMap {listOf(it.filename,it.thumbnail)}.toSet()
         // Leave fresh files alone: an import may be between writing a file and committing metadata.
+        context.cacheDir.listFiles()?.filter {it.name.startsWith("import-") && it.extension=="tmp" && System.currentTimeMillis()-it.lastModified()>86400000L}?.forEach {it.delete()}
+        File(context.cacheDir,"camera").listFiles()?.filter {System.currentTimeMillis()-it.lastModified()>86400000L}?.forEach {it.delete()}
         directory(scope).listFiles()?.filter {it.name !in referenced && System.currentTimeMillis()-it.lastModified()>86400000L}?.forEach {it.delete()}
     }
 }

@@ -16,6 +16,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.collectLatest
 
 @AndroidEntryPoint class MainActivity : FragmentActivity() {
     private val vm: AppViewModel by viewModels()
@@ -28,6 +30,11 @@ import kotlinx.coroutines.flow.combine
         lifecycleScope.launch {
             combine(vm.hidden,vm.preferences){hidden,prefs->hidden || prefs.screenshotProtection}.collect {secure->
                 if(secure)window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+        lifecycleScope.launch {
+            vm.workspace.filterNotNull().collectLatest { workspace->
+                try {receipts.collectOrphans(workspace.scope)}catch(cancel: kotlinx.coroutines.CancellationException){throw cancel}catch(_:Exception){/* Cleanup retries on the next workspace activation. */}
             }
         }
         setContent {BudgetApp(vm,Biometrics(this),receipts,portability)}
