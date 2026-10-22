@@ -5,6 +5,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -56,9 +58,9 @@ import java.security.MessageDigest
     val hidden by vm.hidden.collectAsStateWithLifecycle();val account by vm.session.collectAsStateWithLifecycle();val profiles by vm.profiles.collectAsStateWithLifecycle()
     val nav=rememberNavController();val entry by nav.currentBackStackEntryAsState();val route=entry?.destination?.route
     var switcher by remember {mutableStateOf(false)};var reveal by remember {mutableStateOf(false)};var challenge by remember {mutableLongStateOf(0)};var enrollment by remember {mutableStateOf(false)};var deletion by remember {mutableStateOf("")}
-    val tabs=listOf("Home" to Icons.Outlined.Home,"Transactions" to Icons.Outlined.ReceiptLong,"Analytics" to Icons.Outlined.BarChart,"Budgets" to Icons.Outlined.AccountBalanceWallet,"Settings" to Icons.Outlined.Settings)
+    val tabs=listOf("Home" to Icons.Outlined.Home,"Transactions" to Icons.AutoMirrored.Outlined.ReceiptLong,"Analytics" to Icons.Outlined.BarChart,"Budgets" to Icons.Outlined.AccountBalanceWallet,"Settings" to Icons.Outlined.Settings)
     fun navigate(destination: String){nav.navigate(destination){popUpTo("Home"){saveState=true};launchSingleTop=true;restoreState=true}}
-    Scaffold(topBar={TopAppBar(title={Column {Text("Hello, ${account?.name?.substringBefore(' ')?:"there"}",style=MaterialTheme.typography.labelMedium);Text(data.workspace.profile.name)}},navigationIcon={if(route !in tabs.map {it.first})IconButton(onClick={nav.popBackStack()}){Icon(Icons.Outlined.ArrowBack,"Back")}},actions={
+    Scaffold(topBar={TopAppBar(title={Column {Text("Hello, ${account?.name?.substringBefore(' ')?:"there"}",style=MaterialTheme.typography.labelMedium);Text(data.workspace.profile.name)}},navigationIcon={if(route !in tabs.map {it.first})IconButton(onClick={nav.popBackStack()}){Icon(Icons.AutoMirrored.Outlined.ArrowBack,"Back")}},actions={
         Box {IconButton(onClick={switcher=true}){Icon(Icons.Outlined.SwitchAccount,"Switch profile")};DropdownMenu(switcher,{switcher=false}){profiles.forEach {profile->DropdownMenuItem(text={Text(profile.name)},onClick={switcher=false;vm.select(profile.id)})};DropdownMenuItem(text={Text("Manage profiles")},onClick={switcher=false;manageProfiles()})}}
         IconButton(onClick={if(hidden){challenge=vm.privacy.challenge();reveal=true}else vm.privacy.hide()}){Icon(if(hidden)Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,if(hidden)"Show financial information — authentication required" else "Hide all financial information")}
     })},bottomBar={NavigationBar {tabs.forEach {(name,icon)->NavigationBarItem(selected=route==name,onClick={navigate(name)},icon={Icon(icon,name)},label={Text(name,maxLines=1)})}}}) {padding->
