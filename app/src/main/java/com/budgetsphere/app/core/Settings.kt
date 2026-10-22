@@ -18,6 +18,15 @@ data class Preferences(val theme: String="System", val autoHide: Boolean=true, v
     }
     suspend fun set(key: String, value: Boolean) { require(key in listOf("autoHide","screenshots","monday")); store.edit { it[booleanPreferencesKey(key)]=value } }
     suspend fun set(key: String, value: String) { require(key in listOf("theme","dateFormat")); store.edit { it[stringPreferencesKey(key)]=value } }
+    suspend fun restore(preferences: Preferences) {
+        store.edit {
+            it[stringPreferencesKey("theme")]=preferences.theme
+            it[booleanPreferencesKey("autoHide")]=preferences.autoHide
+            it[booleanPreferencesKey("screenshots")]=preferences.screenshotProtection
+            it[booleanPreferencesKey("monday")]=preferences.mondayFirst
+            it[stringPreferencesKey("dateFormat")]=preferences.dateFormat
+        }
+    }
     suspend fun active(account: String, profile: String) { store.edit { it[stringPreferencesKey("active_$account")]=profile } }
     fun active(account: String)=store.data.map { it[stringPreferencesKey("active_$account")] }
 }

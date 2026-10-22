@@ -66,7 +66,9 @@ class RepositoryWorkflowTest {
     @Test fun backupRoundTripPreservesRelationshipsAndRejectsTamperingWithoutOverwrites()=runBlocking {
         signup();val account=accounts.requireAccount().id;val p=profile("Personal");val scope=Scope(account,p.id);finance.select(p.id)
         val category=db.dao().categoryList(account,p.id).first {it.kind=="EXPENSE"}
-        finance.saveTransaction(scope,null,"Lunch","123.45","EXPENSE",category.id,LocalDate.now(),"description","notes","Cash","food")
+        val transactionId=finance.saveTransaction(scope,null,"Lunch","123.45","EXPENSE",category.id,LocalDate.now(),"description","notes","Cash","food")
+        val receiptImage=File(context.cacheDir,"receipt.png").apply {writeBytes(java.util.Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGMU2NnIgA0wYRUdtBIABeIBWu28MT4AAAAASUVORK5CYII="))}
+        receipts.import(scope,transactionId,Uri.fromFile(receiptImage))
         finance.saveBudget(scope,null,category.id,"2026-10","1000")
         val file=File(context.cacheDir,"test-backup.bsp")
         portability.backup(account,Uri.fromFile(file),"a separate backup secret".toCharArray())
@@ -76,6 +78,19 @@ class RepositoryWorkflowTest {
         val restored=profiles.single {it.id!=p.id};val tx=db.dao().transactionList(account,restored.id).single();val budget=db.dao().budgetList(account,restored.id).single()
         assertEquals(12345L,tx.amount);assertEquals("notes",tx.notes);assertEquals(tx.categoryId,budget.categoryId)
         assertEquals(1,db.dao().transactionList(account,p.id).size)
+        val restoredAttachment=db.dao().attachmentList(account,restored.id).single()
+        assertEquals(tx.id,restoredAttachment.transactionId)
+        assertTrue(receipts.file(Scope(account,restored.id),restoredAttachment.filename).isFile)
+        val rawBackup=BackupCipher().decrypt(encrypted,"a separate backup secret".toCharArray())
+        listOf("amount","preferences").forEach {invalidField->
+            val malformed=org.json.JSONObject(String(rawBackup,Charsets.UTF_8))
+            if(invalidField=="amount")malformed.getJSONArray("profiles").getJSONObject(0).getJSONArray("transactions").getJSONObject(0).put("amount",1.5)
+            else malformed.getJSONObject("preferences").put("autoHide","false")
+            file.writeBytes(BackupCipher().encrypt(malformed.toString().toByteArray(),"a separate backup secret".toCharArray()))
+            try{portability.restore(account,Uri.fromFile(file),"a separate backup secret".toCharArray());fail("Malformed backup accepted")}catch(_:IllegalArgumentException){}
+            assertEquals(2,db.dao().profileList(account).size)
+        }
+        rawBackup.fill(0)
         file.writeBytes(encrypted.copyOf().also {it[it.lastIndex]=(it.last().toInt() xor 1).toByte()})
         try{portability.restore(account,Uri.fromFile(file),"a separate backup secret".toCharArray());fail("Tampered backup accepted")}catch(_:IllegalStateException){}
         assertEquals(2,db.dao().profileList(account).size)
