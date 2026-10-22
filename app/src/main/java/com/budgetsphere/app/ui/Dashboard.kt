@@ -17,8 +17,8 @@ import java.time.YearMonth
 
 @Composable fun Dashboard(data: WorkspaceData,vm: AppViewModel,hidden: Boolean,onAdd: (String)->Unit,onOpen: (String)->Unit,onNavigate: (String)->Unit) {
     val currency=data.workspace.profile.currency;val prefs by vm.preferences.collectAsState()
-    val totals=remember(data.transactions){Totals(Money.sum(data.transactions.filter {it.kind=="INCOME"}.map {it.amount}),Money.sum(data.transactions.filter {it.kind=="EXPENSE"}.map {it.amount}))}
-    val month=DateRange.month();val spent=Money.sum(data.transactions.filter {it.kind=="EXPENSE" && it.date in month}.map {it.amount})
+    val totals=data.ledger.total
+    val month=DateRange.month();val spent=data.ledger.spending(YearMonth.now())
     val overall=data.budgets.find {it.month==YearMonth.now().toString() && it.categoryId==null}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         item {Text("Your money, in focus",style=MaterialTheme.typography.headlineMedium);Text("A little clarity for every day.",color=MaterialTheme.colorScheme.onSurfaceVariant)}
@@ -33,7 +33,9 @@ import java.time.YearMonth
 }
 @Composable fun CategoryChart(data: WorkspaceData,range: DateRange,hidden: Boolean) {
     if(hidden) {Text("••••••",style=MaterialTheme.typography.headlineMedium);Text("Chart hidden for privacy");return}
-    val groups=remember(data.transactions,range){data.transactions.filter {it.kind=="EXPENSE" && it.date in range}.groupBy {it.categoryId}.mapValues {Money.sum(it.value.map {tx->tx.amount})}.toList().sortedByDescending {it.second}}
+    val report by produceState<FinancialReport?>(null,data.ledger,range){value=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default){data.ledger.report(range)}}
+    if(report==null){CircularProgressIndicator();return}
+    val groups=report!!.categories.toList().sortedByDescending {it.second}
     if(groups.isEmpty()){Text("No expenses in this period.");return}
     val max=groups.maxOf {it.second}.toDouble()
     groups.take(8).forEach {(id,amount)->val category=data.categories.find {it.id==id}
@@ -45,27 +47,27 @@ import java.time.YearMonth
     var period by remember {mutableStateOf("Month")};var start by remember {mutableStateOf(LocalDate.now().withDayOfMonth(1).toString())};var end by remember {mutableStateOf(LocalDate.now().toString())}
     val prefs by vm.preferences.collectAsState();val currency=data.workspace.profile.currency
     val range=runCatching{if(period=="Custom")DateRange(LocalDate.parse(start).toEpochDay(),LocalDate.parse(end).toEpochDay())else DateRange.named(period,prefs.mondayFirst)}
+    val report by produceState<FinancialReport?>(null,data.ledger,range.getOrNull()){value=range.getOrNull()?.let {kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default){data.ledger.report(it)}}}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         item {Text("Analytics",style=MaterialTheme.typography.headlineMedium)}
         item {Choice("Period",period,listOf("Week","Month","Last month","Year","Custom").map {it to it},{period=it})}
         if(period=="Custom")item {FormField("Start (YYYY-MM-DD)",start,{start=it});FormField("End (YYYY-MM-DD)",end,{end=it})}
         if(range.isFailure)item {Text("Enter a valid date range.",color=MaterialTheme.colorScheme.error)}
         else {
-            val selected=data.transactions.filter {it.date in range.getOrThrow()}
-            val income=Money.sum(selected.filter {it.kind=="INCOME"}.map {it.amount});val expenses=Money.sum(selected.filter {it.kind=="EXPENSE"}.map {it.amount})
+            val income=report?.totals?.income?:0;val expenses=report?.totals?.expense?:0
             item {SectionCard("Income vs expenses"){Text("Income");MoneyText(income,currency,hidden);Text("Expenses");MoneyText(expenses,currency,hidden);if(!hidden){val largest=maxOf(income,expenses,1).toDouble();LinearProgressIndicator(progress={(income/largest).toFloat()},modifier=Modifier.fillMaxWidth());LinearProgressIndicator(progress={(expenses/largest).toFloat()},color=MaterialTheme.colorScheme.error,modifier=Modifier.fillMaxWidth())}}}
             item {SectionCard("Category distribution"){CategoryChart(data,range.getOrThrow(),hidden)}}
             item {SectionCard("Monthly spending trend") {
                 if(hidden){Text("••••••");Text("Chart hidden for privacy")}
                 else {
                     val months=(5 downTo 0).map {YearMonth.now().minusMonths(it.toLong())}
-                    val values=months.map {month->Money.sum(data.transactions.filter {it.kind=="EXPENSE" && YearMonth.from(LocalDate.ofEpochDay(it.date))==month}.map {it.amount})}
+                    val values=months.map {month->data.ledger.spending(month)}
                     val color=MaterialTheme.colorScheme.primary
                     Canvas(Modifier.fillMaxWidth().height(120.dp)) {val max=values.maxOrNull()?.coerceAtLeast(1)?.toDouble()?:1.0;val width=size.width/6;values.forEachIndexed {index,value->drawLine(color,Offset(width*(index+.5f),size.height),Offset(width*(index+.5f),size.height-(value/max*size.height).toFloat()),strokeWidth=width*.55f)} }
                     months.forEachIndexed {i,month->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(month.toString());MoneyText(values[i],currency,false)}}
                 }
             }}
-            item {SectionCard("Budget vs actual — this month") {val month=YearMonth.now().toString();val monthRange=DateRange.month();data.budgets.filter {it.month==month}.forEach { budget->val spent=Money.sum(data.transactions.filter {it.kind=="EXPENSE" && it.date in monthRange && (budget.categoryId==null || it.categoryId==budget.categoryId)}.map {it.amount});Text(budget.categoryId?.let {id->data.categories.find {it.id==id}?.name}?:"Overall budget");Text("Budget");MoneyText(budget.amount,currency,hidden);Text("Actual");MoneyText(spent,currency,hidden)};if(data.budgets.none {it.month==month})Text("No budgets set for this month.")}}
+            item {SectionCard("Budget vs actual — this month") {val month=YearMonth.now().toString();val monthRange=DateRange.month();data.budgets.filter {it.month==month}.forEach { budget->val spent=data.ledger.spending(YearMonth.parse(budget.month),budget.categoryId);Text(budget.categoryId?.let {id->data.categories.find {it.id==id}?.name}?:"Overall budget");Text("Budget");MoneyText(budget.amount,currency,hidden);Text("Actual");MoneyText(spent,currency,hidden)};if(data.budgets.none {it.month==month})Text("No budgets set for this month.")}}
         }
     }
 }

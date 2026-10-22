@@ -19,7 +19,7 @@ import java.time.YearMonth
         if(data.budgets.isEmpty()) item {EmptyState("Give your month a plan","Set an overall budget or a limit for a spending category.")}
         items(data.budgets,key={it.id}) {budget->
             val month=YearMonth.parse(budget.month);val range=DateRange(month.atDay(1).toEpochDay(),month.atEndOfMonth().toEpochDay())
-            val spent=Money.sum(data.transactions.filter {it.kind=="EXPENSE" && it.date in range && (budget.categoryId==null || it.categoryId==budget.categoryId)}.map {it.amount})
+            val spent=data.ledger.spending(month,budget.categoryId)
             SectionCard(budget.categoryId?.let {id->data.categories.find {it.id==id}?.name}?:"Overall monthly budget") {
                 Text(budget.month);Text("Budget");MoneyText(budget.amount,data.workspace.profile.currency,hidden);Text("Spent");MoneyText(spent,data.workspace.profile.currency,hidden);Text("Remaining");MoneyText(remaining(budget.amount,spent),data.workspace.profile.currency,hidden)
                 if(!hidden){LinearProgressIndicator(progress={(spent.toDouble()/budget.amount).coerceIn(0.0,1.0).toFloat()},modifier=Modifier.fillMaxWidth(),color=if(spent>budget.amount)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary);if(spent>=budget.amount)Text("Budget limit reached",color=MaterialTheme.colorScheme.error)else if(spent.toDouble()/budget.amount>=.8)Text("Approaching your budget limit")}
