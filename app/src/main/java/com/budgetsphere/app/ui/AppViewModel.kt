@@ -5,12 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.budgetsphere.app.core.*
 import com.budgetsphere.app.data.*
 import com.budgetsphere.app.domain.*
+import com.budgetsphere.app.domain.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-@HiltViewModel class AppViewModel @Inject constructor(val accounts: AccountRepository,val finance: FinanceRepository,val settings: Settings,val privacy: PrivacyManager): ViewModel() {
+@HiltViewModel class AppViewModel @Inject constructor(val accounts: AccountStore,val finance: FinanceStore,val settings: Settings,val privacy: PrivacyManager): ViewModel() {
     val busy=MutableStateFlow(false)
     val message=MutableStateFlow<String?>(null)
     val preferences=settings.preferences.stateIn(viewModelScope,SharingStarted.Eagerly,Preferences())
@@ -25,7 +26,7 @@ import kotlinx.coroutines.flow.*
                 finance.clearWorkspace()
                 if(account!=null) {
                     val saved=settings.active(account).first()
-                    val available=finance.dao.profileList(account)
+                    val available=finance.loadProfiles()
                     (available.find {it.id==saved}?:available.firstOrNull())?.let { finance.select(it.id) }
                 }
             }

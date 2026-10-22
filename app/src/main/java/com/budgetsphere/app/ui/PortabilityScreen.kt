@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.budgetsphere.app.data.*
+import com.budgetsphere.app.domain.*
 import com.budgetsphere.app.domain.DocumentAuthorization
 
 @Composable fun PortabilityScreen(data: WorkspaceData,vm: AppViewModel,portability: Portability,hidden: Boolean) {

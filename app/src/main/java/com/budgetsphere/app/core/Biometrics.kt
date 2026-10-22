@@ -6,7 +6,7 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import com.budgetsphere.app.data.AccountEntity
+import com.budgetsphere.app.domain.LocalAccount
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -23,7 +23,7 @@ class Biometrics(private val activity: FragmentActivity) {
     private fun alias(id: String)="budgetsphere.biometric.$id"
     private fun key(id: String): SecretKey? = KeyStore.getInstance("AndroidKeyStore").apply {load(null)}.getKey(alias(id),null) as? SecretKey
     fun remove(id: String) { KeyStore.getInstance("AndroidKeyStore").apply {load(null);deleteEntry(alias(id))} }
-    fun enroll(account: AccountEntity, success: (ByteArray,ByteArray)->Unit, failure: (String)->Unit) {
+    fun enroll(account: LocalAccount, success: (ByteArray,ByteArray)->Unit, failure: (String)->Unit) {
         try {
             availability()?.let { failure(it);return }
             remove(account.id)
@@ -35,7 +35,7 @@ class Biometrics(private val activity: FragmentActivity) {
             prompt("Enable biometric unlock",cipher,{ authenticated->success(authenticated.doFinal(account.id.toByteArray(Charsets.UTF_8)),authenticated.iv) },failure)
         } catch(_: Exception) { failure("Biometric setup failed. Your password still works.") }
     }
-    fun unlock(account: AccountEntity, success: (ByteArray)->Unit, failure: (String)->Unit) {
+    fun unlock(account: LocalAccount, success: (ByteArray)->Unit, failure: (String)->Unit) {
         try {
             availability()?.let { failure(it);return }
             val ciphertext=account.biometricCipher?:error("Not enrolled")

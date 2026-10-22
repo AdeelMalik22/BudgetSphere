@@ -41,7 +41,7 @@ class RepositoryWorkflowTest {
         val id=finance.saveTransaction(scope,null,"Groceries","500.25","EXPENSE",category.id,LocalDate.now(),"","","Cash","")
         assertEquals(50025L,db.dao().transaction(account,personal.id,id)?.amount)
         assertTrue(db.dao().transactionList(account,friend.id).isEmpty())
-        try{finance.saveTransaction(Scope(account,friend.id),db.dao().transaction(account,personal.id,id),"Bad edit","1","EXPENSE",category.id,LocalDate.now(),"","","","");fail("Cross-profile mutation accepted")}catch(_:IllegalArgumentException){}catch(_:IllegalStateException){}
+        try{finance.saveTransaction(Scope(account,friend.id),db.dao().transaction(account,personal.id,id)?.toDomain(),"Bad edit","1","EXPENSE",category.id,LocalDate.now(),"","","","");fail("Cross-profile mutation accepted")}catch(_:IllegalArgumentException){}catch(_:IllegalStateException){}
         accounts.logout();signup("other")
         try{finance.deleteTransaction(scope,id);fail("Cross-account mutation accepted")}catch(_:IllegalArgumentException){}
         assertNotNull(db.dao().transaction(account,personal.id,id))

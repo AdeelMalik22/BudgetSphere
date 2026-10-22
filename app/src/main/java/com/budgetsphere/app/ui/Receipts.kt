@@ -16,11 +16,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import com.budgetsphere.app.data.*
+import com.budgetsphere.app.domain.*
 import java.io.File
 
-@Composable fun Receipts(data: WorkspaceData,tx: TransactionEntity,store: ReceiptStore,vm: AppViewModel,hidden: Boolean) {
+@Composable fun Receipts(data: WorkspaceData,tx: FinancialTransaction,store: ReceiptStore,vm: AppViewModel,hidden: Boolean) {
     val context=LocalContext.current;val scope=data.workspace.scope
-    var preview by remember {mutableStateOf<AttachmentEntity?>(null)};var remove by remember {mutableStateOf<AttachmentEntity?>(null)}
+    var preview by remember {mutableStateOf<Attachment?>(null)};var remove by remember {mutableStateOf<Attachment?>(null)}
     var cameraFile by remember {mutableStateOf<File?>(null)}
     val currentScope by rememberUpdatedState(scope)
     val picker=rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {uri->if(uri!=null)vm.perform("Receipt added"){store.import(currentScope,tx.id,uri)}}

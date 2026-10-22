@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.*
 import com.budgetsphere.app.core.Biometrics
 import com.budgetsphere.app.data.*
+import com.budgetsphere.app.domain.*
 import java.security.MessageDigest
 
 @Composable fun BudgetApp(vm: AppViewModel,biometrics: Biometrics,receipts: ReceiptStore,portability: Portability) {
@@ -34,7 +35,7 @@ import java.security.MessageDigest
     }
     val selected=workspace?:return
     key(selected.scope,selected.profile){
-        val flow=remember(selected){vm.finance.observe(selected)}
+        val flow=remember(selected){vm.finance.observeWorkspace(selected)}
         val data by flow.collectAsStateWithLifecycle(initialValue=null)
         if(data==null)Box(Modifier.fillMaxSize(),contentAlignment=androidx.compose.ui.Alignment.Center){CircularProgressIndicator()}
         else WorkspaceNavigation(data!!,vm,biometrics,receipts,portability,{manage=true})

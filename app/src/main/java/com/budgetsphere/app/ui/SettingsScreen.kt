@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.work.WorkManager
 import com.budgetsphere.app.core.*
 import com.budgetsphere.app.data.*
+import com.budgetsphere.app.domain.*
 import kotlinx.coroutines.flow.map
 
 @Composable fun SettingsScreen(data: WorkspaceData,vm: AppViewModel,biometrics: Biometrics,onNavigate: (String)->Unit,onEnableBiometric: ()->Unit,onDeleteAccount: ()->Unit,onDeleteProfile: ()->Unit) {

@@ -11,10 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.budgetsphere.app.data.*
 import com.budgetsphere.app.domain.*
+import com.budgetsphere.app.domain.*
 import java.time.YearMonth
 
 @Composable fun BudgetsScreen(data: WorkspaceData,vm: AppViewModel,hidden: Boolean) {
-    var form by remember {mutableStateOf(false)};var edit by remember {mutableStateOf<BudgetEntity?>(null)};var delete by remember {mutableStateOf<BudgetEntity?>(null)}
+    var form by remember {mutableStateOf(false)};var edit by remember {mutableStateOf<Budget?>(null)};var delete by remember {mutableStateOf<Budget?>(null)}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         item {Text("Budgets",style=MaterialTheme.typography.headlineMedium);Text("Make room for what matters.");Button(enabled=!hidden,onClick={edit=null;form=true}){Text("Create budget")}}
         if(hidden)item{Text("Unlock using the eye control to enter or edit budget amounts.")}
@@ -32,7 +33,7 @@ import java.time.YearMonth
     if(form) BudgetForm(data,vm,edit,{form=false})
     delete?.let {budget->ConfirmDialog("Delete budget?","Transactions will be kept.",{delete=null},{vm.perform("Budget deleted"){vm.finance.deleteBudget(data.workspace.scope,budget.id)};delete=null})}
 }
-@Composable private fun BudgetForm(data: WorkspaceData,vm: AppViewModel,original: BudgetEntity?,dismiss: ()->Unit) {
+@Composable private fun BudgetForm(data: WorkspaceData,vm: AppViewModel,original: Budget?,dismiss: ()->Unit) {
     var category by remember {mutableStateOf(original?.categoryId?:"")};var month by remember {mutableStateOf(original?.month?:YearMonth.now().toString())};var amount by remember {mutableStateOf(original?.let {Money.decimal(it.amount,data.workspace.profile.currency)}?:"")}
     val hidden by vm.hidden.collectAsState();val busy by vm.busy.collectAsState()
     if(hidden){LaunchedEffect(Unit){dismiss()};return}

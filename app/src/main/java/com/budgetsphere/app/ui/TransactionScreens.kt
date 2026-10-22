@@ -12,10 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.budgetsphere.app.data.*
 import com.budgetsphere.app.domain.*
+import com.budgetsphere.app.domain.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-@Composable fun TransactionRow(tx: TransactionEntity,category: CategoryEntity?,hidden: Boolean,format: String,onClick: ()->Unit) {
+@Composable fun TransactionRow(tx: FinancialTransaction,category: Category?,hidden: Boolean,format: String,onClick: ()->Unit) {
     ListItem(modifier=Modifier.clickable(onClick=onClick),headlineContent={Text(tx.title)},supportingContent={Text("${category?.name?:"Category"} · ${LocalDate.ofEpochDay(tx.date).format(DateTimeFormatter.ofPattern(format))}")},leadingContent={Icon(if(tx.kind=="INCOME")Icons.Outlined.SouthWest else categoryIcon(category?.icon?:"Category"),null,tint=if(tx.kind=="INCOME") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)},trailingContent={MoneyText(if(tx.kind=="INCOME")tx.amount else -tx.amount,tx.currency,hidden)})
 }
 @Composable fun TransactionsScreen(data: WorkspaceData,vm: AppViewModel,hidden: Boolean,onOpen: (String)->Unit,onAdd: ()->Unit) {
@@ -27,7 +28,7 @@ import java.time.format.DateTimeFormatter
     val invalid=range.isFailure || lower.isFailure || upper.isFailure || (lower.getOrDefault(0)>upper.getOrDefault(Long.MAX_VALUE))
     val scope=data.workspace.scope
     val flow=remember(scope,search,category,kind,period,start,end,minimum,maximum,sort,limit,invalid) {
-        if(invalid) kotlinx.coroutines.flow.flowOf(emptyList()) else vm.finance.dao.transactions(scope.account,scope.profile,range.getOrThrow().start,range.getOrThrow().end,kind,category,search,lower.getOrThrow(),upper.getOrThrow(),sort,limit)
+        if(invalid) kotlinx.coroutines.flow.flowOf(emptyList()) else vm.finance.history(scope,TransactionFilter(range.getOrThrow(),kind,category,search,lower.getOrThrow(),upper.getOrThrow(),sort,limit))
     }
     val rows by flow.collectAsState(initial=emptyList())
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -54,7 +55,7 @@ import java.time.format.DateTimeFormatter
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun TransactionForm(data: WorkspaceData,vm: AppViewModel,original: TransactionEntity?,initialKind: String,onSaved: (String)->Unit) {
+@Composable fun TransactionForm(data: WorkspaceData,vm: AppViewModel,original: FinancialTransaction?,initialKind: String,onSaved: (String)->Unit) {
     val scope=data.workspace.scope
     var title by remember {mutableStateOf(original?.title?:"")};var amount by remember {mutableStateOf(original?.let {Money.decimal(it.amount,it.currency)}?:"")};var kind by remember {mutableStateOf(original?.kind?:initialKind)};var category by remember {mutableStateOf(original?.categoryId?:"")};var date by remember {mutableStateOf(original?.let {LocalDate.ofEpochDay(it.date).toString()}?:LocalDate.now().toString())};var description by remember {mutableStateOf(original?.description?:"")};var notes by remember {mutableStateOf(original?.notes?:"")};var payment by remember {mutableStateOf(original?.payment?:"")};var tags by remember {mutableStateOf(original?.tags?:"")};var picker by remember {mutableStateOf(false)}
     val busy by vm.busy.collectAsState();val hidden by vm.hidden.collectAsState()
@@ -78,7 +79,7 @@ import java.time.format.DateTimeFormatter
         DatePickerDialog(onDismissRequest={picker=false},confirmButton={TextButton(onClick={state.selectedDateMillis?.let {date=LocalDate.ofEpochDay(it/86400000L).toString()};picker=false}){Text("Choose")}},dismissButton={TextButton(onClick={picker=false}){Text("Cancel")}}){DatePicker(state)}
     }
 }
-@Composable fun TransactionDetails(data: WorkspaceData,tx: TransactionEntity,vm: AppViewModel,hidden: Boolean,onEdit: ()->Unit,onDeleted: ()->Unit,receipts: @Composable ()->Unit) {
+@Composable fun TransactionDetails(data: WorkspaceData,tx: FinancialTransaction,vm: AppViewModel,hidden: Boolean,onEdit: ()->Unit,onDeleted: ()->Unit,receipts: @Composable ()->Unit) {
     var confirm by remember {mutableStateOf(false)}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
         item {Text(tx.title,style=MaterialTheme.typography.headlineMedium);MoneyText(tx.amount,tx.currency,hidden,true)}
