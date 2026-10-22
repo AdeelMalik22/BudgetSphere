@@ -11,15 +11,9 @@ import javax.inject.Singleton
 import kotlinx.coroutines.*
 import java.io.File
 
-@Singleton class ReceiptStore @Inject constructor(@param:ApplicationContext private val context: Context, private val finance: FinanceRepository) {
-    fun directory(scope: Scope): File {
-        require(runCatching {java.util.UUID.fromString(scope.account);java.util.UUID.fromString(scope.profile)}.isSuccess)
-        return File(context.filesDir,"receipts/${scope.account}/${scope.profile}")
-    }
-    fun file(scope: Scope,name: String): File {
-        require(name.matches(Regex("[a-f0-9-]{36}(-thumb)?\\.jpg"))) { "Invalid receipt reference" }
-        return File(directory(scope),name)
-    }
+@Singleton class ReceiptStore @Inject constructor(@param:ApplicationContext private val context: Context, private val finance: FinanceRepository,private val paths: ReceiptPaths) {
+    fun directory(scope: Scope): File = paths.directory(scope)
+    fun file(scope: Scope,name: String): File = paths.file(scope,name)
     suspend fun import(scope: Scope,tx: String,uri: Uri)=withContext(Dispatchers.IO) {
         finance.validate(scope)
         require(finance.dao.transaction(scope.account,scope.profile,tx)!=null) {"Transaction no longer exists"}

@@ -15,7 +15,7 @@ import java.time.YearMonth
 
 fun newId(): String = UUID.randomUUID().toString()
 data class Workspace(val scope: Scope, val profile: ProfileEntity)
-@Singleton class FinanceRepository @Inject constructor(val db: BudgetDatabase, private val accounts: AccountRepository, private val settings: Settings, private val privacy: PrivacyManager) {
+@Singleton class FinanceRepository @Inject constructor(val db: BudgetDatabase, private val accounts: AccountRepository, private val settings: Settings, private val privacy: PrivacyManager,private val receiptPaths: ReceiptPaths) {
     val dao=db.dao()
     private val _workspace=MutableStateFlow<Workspace?>(null)
     val workspace=_workspace.asStateFlow()
@@ -54,6 +54,7 @@ data class Workspace(val scope: Scope, val profile: ProfileEntity)
         require(dao.profile(account,id)!=null)
         if(_workspace.value?.scope==Scope(account,id)) clearWorkspace()
         dao.deleteProfile(account,id)
+        receiptPaths.directory(Scope(account,id)).deleteRecursively()
     }
     suspend fun saveTransaction(scope: Scope, original: TransactionEntity?, title: String, amount: String, kind: String, category: String, date: LocalDate, description: String, notes: String, payment: String, tags: String): String = withContext(Dispatchers.IO) {
         val profile=validate(scope)
@@ -71,7 +72,18 @@ data class Workspace(val scope: Scope, val profile: ProfileEntity)
         }
         tx.id
     }
-    suspend fun deleteTransaction(scope: Scope,id: String)=withContext(Dispatchers.IO) { validate(scope);dao.deleteTransaction(scope.account,scope.profile,id) }
+    suspend fun deleteTransaction(scope: Scope,id: String)=withContext(Dispatchers.IO) {
+        validate(scope)
+        val attachments=dao.attachmentList(scope.account,scope.profile).filter {it.transactionId==id}
+        dao.deleteTransaction(scope.account,scope.profile,id)
+        attachments.forEach {receiptPaths.file(scope,it.filename).delete();receiptPaths.file(scope,it.thumbnail).delete()}
+    }
+    suspend fun deleteCurrentAccount()=withContext(Dispatchers.IO) {
+        val account=accounts.requireAccount().id
+        dao.deleteAccount(account)
+        clearWorkspace();accounts.logout()
+        receiptPaths.accountDirectory(account).deleteRecursively()
+    }
     suspend fun saveCategory(scope: Scope,id: String?,name: String,kind: String,color: Long,icon: String)=withContext(Dispatchers.IO) {
         validate(scope);require(kind in listOf("EXPENSE","INCOME"))
         val previous=id?.let { dao.categoryList(scope.account,scope.profile).find { c->c.id==it }?:error("Category no longer exists") }

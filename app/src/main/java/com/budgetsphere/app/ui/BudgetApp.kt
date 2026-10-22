@@ -66,7 +66,7 @@ import java.security.MessageDigest
     if(enrollment) PasswordGate("Confirm password to enable biometrics",vm,{enrollment=false},{password->vm.perform {require(vm.accounts.verify(password.toCharArray())){"Incorrect password"};val captured=vm.accounts.requireAccount();biometrics.enroll(captured,{cipher,iv->vm.perform("Biometric unlock enabled"){vm.accounts.enableBiometric(captured.id,cipher,iv);enrollment=false}},{vm.notify(it)})}})
     if(deletion.isNotEmpty()) PasswordGate(if(deletion=="account")"Permanently delete this account?" else "Permanently delete this profile?",vm,{deletion=""},{password->val target=deletion;vm.perform("Data deleted"){
         require(vm.accounts.verify(password.toCharArray())){"Incorrect password"}
-        if(target=="profile"){vm.finance.deleteProfile(data.workspace.scope.profile);receipts.directory(data.workspace.scope).deleteRecursively()}else{val id=vm.accounts.requireAccount().id;val owned=vm.finance.dao.profileList(id);vm.finance.dao.deleteAccount(id);owned.forEach {receipts.directory(com.budgetsphere.app.domain.Scope(id,it.id)).deleteRecursively()};vm.logout()};deletion=""
+        if(target=="profile")vm.finance.deleteProfile(data.workspace.scope.profile)else vm.finance.deleteCurrentAccount();deletion=""
     }},warning="This cannot be undone. All associated transactions, categories, budgets, and receipts will be deleted. Enter your account password to confirm.")
 }
 @Composable private fun PasswordGate(title: String,vm: AppViewModel,dismiss: ()->Unit,submit: (String)->Unit,biometricAction: (()->Unit)?=null,warning: String?=null) {

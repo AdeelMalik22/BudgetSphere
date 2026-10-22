@@ -30,7 +30,7 @@ class RepositoryWorkflowTest {
         context=ApplicationProvider.getApplicationContext()
         db=Room.inMemoryDatabaseBuilder(context,BudgetDatabase::class.java).build()
         accounts=AccountRepository(db.dao(),PasswordHasher(),PrivacyManager())
-        settings=Settings(context);finance=FinanceRepository(db,accounts,settings,PrivacyManager());receipts=ReceiptStore(context,finance);portability=Portability(context,finance,accounts,receipts,settings)
+        settings=Settings(context);finance=FinanceRepository(db,accounts,settings,PrivacyManager(),ReceiptPaths(context));receipts=ReceiptStore(context,finance,ReceiptPaths(context));portability=Portability(context,finance,accounts,receipts,settings)
     }
     @After fun close(){db.close()}
     private suspend fun signup(name: String="owner") {accounts.signup(name,name,"a secure local password".toCharArray(),"a secure local password".toCharArray())}
@@ -50,6 +50,18 @@ class RepositoryWorkflowTest {
         accounts.changePassword("a secure local password".toCharArray(),"my changed secure password".toCharArray(),"my changed secure password".toCharArray());accounts.logout()
         try{accounts.login("owner","a secure local password".toCharArray());fail("Old password accepted")}catch(_:IllegalStateException){}
         accounts.login("owner","my changed secure password".toCharArray());assertEquals(account,accounts.requireAccount().id)
+    }
+    @Test fun deletionsRemoveOwnedReceiptFilesWithoutTouchingOtherProfiles()=runBlocking {
+        signup();val account=accounts.requireAccount().id;val personal=profile("Personal");val friend=profile("Friend")
+        val scope=Scope(account,personal.id);val other=Scope(account,friend.id)
+        val category=db.dao().categoryList(account,personal.id).first {it.kind=="EXPENSE"}
+        val tx=finance.saveTransaction(scope,null,"Receipt test","1","EXPENSE",category.id,LocalDate.now(),"","","","")
+        val receipt=newId();val file=receipts.file(scope,"$receipt.jpg");file.parentFile!!.mkdirs();file.writeText("private receipt")
+        val thumb=receipts.file(scope,"$receipt-thumb.jpg");thumb.writeText("private thumbnail")
+        db.dao().insertAttachment(AttachmentEntity(account,personal.id,receipt,tx,file.name,thumb.name))
+        val retained=receipts.file(other,"${newId()}.jpg");retained.parentFile!!.mkdirs();retained.writeText("other profile")
+        finance.deleteTransaction(scope,tx);assertFalse(file.exists());assertFalse(thumb.exists());assertTrue(retained.exists())
+        finance.deleteProfile(friend.id);assertFalse(retained.exists())
     }
     @Test fun backupRoundTripPreservesRelationshipsAndRejectsTamperingWithoutOverwrites()=runBlocking {
         signup();val account=accounts.requireAccount().id;val p=profile("Personal");val scope=Scope(account,p.id);finance.select(p.id)
