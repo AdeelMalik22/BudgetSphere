@@ -17,6 +17,9 @@ import java.time.YearMonth
 
 @Composable fun Dashboard(data: WorkspaceData,vm: AppViewModel,hidden: Boolean,onAdd: (String)->Unit,onOpen: (String)->Unit,onNavigate: (String)->Unit) {
     val currency=data.workspace.profile.currency;val prefs by vm.preferences.collectAsState()
+    var period by remember {mutableStateOf("Month")};var start by remember {mutableStateOf(LocalDate.now().withDayOfMonth(1).toString())};var end by remember {mutableStateOf(LocalDate.now().toString())}
+    val selectedRange=runCatching{if(period=="Custom")DateRange(LocalDate.parse(start).toEpochDay(),LocalDate.parse(end).toEpochDay())else DateRange.named(period,prefs.mondayFirst)}
+    val selectedReport by produceState<FinancialReport?>(null,data.ledger,selectedRange.getOrNull()) {value=null;value=selectedRange.getOrNull()?.let {kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default){data.ledger.report(it)}}}
     val totals=data.ledger.total
     val month=DateRange.month();val spent=data.ledger.spending(YearMonth.now())
     val overall=data.budgets.find {it.month==YearMonth.now().toString() && it.categoryId==null}
@@ -24,11 +27,18 @@ import java.time.YearMonth
         item {Text("Your money, in focus",style=MaterialTheme.typography.headlineMedium);Text("A little clarity for every day.",color=MaterialTheme.colorScheme.onSurfaceVariant)}
         item {Card(colors=CardDefaults.cardColors(containerColor=Navy,contentColor=Color.White)) {Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Total balance",style=MaterialTheme.typography.labelLarge);MoneyText(totals.balance,currency,hidden,true);Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column{Text("Income");MoneyText(totals.income,currency,hidden)};Column{Text("Expenses");MoneyText(totals.expense,currency,hidden)}}}}}
         item {Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){Button(onClick={onAdd("EXPENSE")},modifier=Modifier.weight(1f)){Icon(Icons.Outlined.Add,null);Text("Expense")};OutlinedButton(onClick={onAdd("INCOME")},modifier=Modifier.weight(1f)){Icon(Icons.Outlined.Add,null);Text("Income")}}}
+        item {SectionCard("Explore a period") {
+            Choice("Period",period,listOf("Week" to "This week","Month" to "This month","Last month" to "Last month","Year" to "This year","Custom" to "Custom range"),{period=it})
+            if(period=="Custom"){FormField("Start date (YYYY-MM-DD)",start,{start=it});FormField("End date (YYYY-MM-DD)",end,{end=it})}
+            if(selectedRange.isFailure)Text("Enter a valid date range.",color=MaterialTheme.colorScheme.error)
+            else if(selectedReport==null)CircularProgressIndicator()
+            else {Text("Income in period");MoneyText(selectedReport!!.totals.income,currency,hidden);Text("Expenses in period");MoneyText(selectedReport!!.totals.expense,currency,hidden)}
+        }}
         item {SectionCard("This month") {Text("Spending");MoneyText(spent,currency,hidden);if(overall!=null){Text("Remaining monthly budget");MoneyText(remaining(overall.amount,spent),currency,hidden);if(!hidden)LinearProgressIndicator(progress={ (spent.toDouble()/overall.amount).coerceIn(0.0,1.0).toFloat() },modifier=Modifier.fillMaxWidth())}else Text("Set an overall monthly budget to track what remains.");TextButton(onClick={onNavigate("Budgets")}){Text("Manage budgets")}}}
-        item {SectionCard("Spending by category") {CategoryChart(data,month,hidden)}}
+        item {SectionCard("Spending by category") {selectedRange.getOrNull()?.let {CategoryChart(data,it,hidden)}?:Text("Choose a valid date range.")}}
         item {Row {Text("Recent activity",style=MaterialTheme.typography.titleLarge,modifier=Modifier.weight(1f));TextButton(onClick={onNavigate("Transactions")}){Text("View all")}}}
         if(data.transactions.isEmpty()) item {EmptyState("A fresh start","Add your first expense or income. Your records will appear here.")}
-        data.transactions.take(5).forEach { tx->item(key=tx.id){TransactionRow(tx,data.categories.find {it.id==tx.categoryId},hidden,prefs.dateFormat,{onOpen(tx.id)})} }
+        data.transactions.asSequence().filter {selectedRange.getOrNull()?.let {range->it.date in range}?:false}.take(5).forEach { tx->item(key=tx.id){TransactionRow(tx,data.categories.find {it.id==tx.categoryId},hidden,prefs.dateFormat,{onOpen(tx.id)})} }
     }
 }
 @Composable fun CategoryChart(data: WorkspaceData,range: DateRange,hidden: Boolean) {
