@@ -26,9 +26,7 @@ import kotlinx.coroutines.flow.*
                 finance.clearWorkspace()
                 if(account!=null) {
                     try {
-                        val saved=settings.active(account).first()
-                        val available=finance.loadProfiles()
-                        (available.find {it.id==saved}?:available.firstOrNull())?.let {finance.select(it.id)}
+                        finance.restoreLastProfile()
                     }catch(cancel: CancellationException){throw cancel}catch(_:Exception){message.value="Your last workspace could not be restored. Check storage or choose a profile."}
                 }
             }

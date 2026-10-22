@@ -28,8 +28,8 @@ fun newId(): String = UUID.randomUUID().toString()
     override fun clearWorkspace() {beginSelection()}
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun profiles()=accounts.session.flatMapLatest { if(it==null) flowOf(emptyList()) else dao.profiles(it.id).map {list->list.map(ProfileEntity::toDomain)} }
-    override suspend fun select(profileId: String) {
-        val expected=beginSelection()
+    override suspend fun select(profileId: String) {loadSelection(profileId,beginSelection())}
+    private suspend fun loadSelection(profileId: String,expected: Long) {
         selectionMutex.withLock {
             withContext(Dispatchers.IO) {
                 val account=accounts.requireAccount().id
@@ -125,8 +125,14 @@ fun newId(): String = UUID.randomUUID().toString()
         dao.putBudget(BudgetEntity(scope.account,scope.profile,id?:newId(),category,category?:"overall",month,Money.parse(amount,profile.currency)))
     }
     override suspend fun deleteBudget(scope: Scope,id: String)=withContext(Dispatchers.IO) { validate(scope);dao.deleteBudget(scope.account,scope.profile,id) }
-    override suspend fun loadProfiles(): List<Profile> = withContext(Dispatchers.IO) {
-        dao.profileList(accounts.requireAccount().id).map(ProfileEntity::toDomain)
+    override suspend fun restoreLastProfile() {
+        val expected=beginSelection()
+        withContext(Dispatchers.IO) {
+            val account=accounts.requireAccount().id
+            val saved=settings.active(account).first()
+            val profiles=dao.profileList(account)
+            (profiles.find {it.id==saved}?:profiles.firstOrNull())?.let {loadSelection(it.id,expected)}
+        }
     }
     override fun observeWorkspace(workspace: Workspace): Flow<WorkspaceSnapshot> = flow {
         val scope=workspace.scope

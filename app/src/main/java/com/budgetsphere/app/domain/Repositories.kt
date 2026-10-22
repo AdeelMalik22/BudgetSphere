@@ -21,7 +21,7 @@ interface FinanceStore {
     val workspace: StateFlow<Workspace?>
     fun clearWorkspace()
     fun profiles(): Flow<List<Profile>>
-    suspend fun loadProfiles(): List<Profile>
+    suspend fun restoreLastProfile()
     suspend fun select(profileId: String)
     fun observeWorkspace(workspace: Workspace): Flow<WorkspaceSnapshot>
     fun history(scope: Scope,filter: TransactionFilter): Flow<List<FinancialTransaction>>

@@ -16,7 +16,9 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35],application=Application::class)
 class ProfileSwitchRaceTest {
-    @Test fun lateProfileLoadsCannotReplaceNewerWorkspaceOrSavedSelection()=runBlocking {
+    @Test fun lateProfileLoadsCannotReplaceNewerWorkspaceOrSavedSelection()=runBlocking {verifyLatestWins(false)}
+    @Test fun lateStartupRestorationCannotReplaceManualSelection()=runBlocking {verifyLatestWins(true)}
+    private suspend fun verifyLatestWins(restoring: Boolean)=coroutineScope {
         val context=ApplicationProvider.getApplicationContext<Application>()
         val db=Room.inMemoryDatabaseBuilder(context,BudgetDatabase::class.java).build()
         val entered=CompletableDeferred<Unit>();val release=CompletableDeferred<Unit>()
@@ -35,7 +37,8 @@ class ProfileSwitchRaceTest {
             }
             val finance=FinanceRepository(db,accounts,settings,privacy,ReceiptPaths(context),delayed)
             collector=launch(Dispatchers.Unconfined){finance.workspace.filterNotNull().collect {observed+=it.scope.profile}}
-            val old=async(Dispatchers.Default){runCatching {finance.select(first)}}
+            settings.active(account,first)
+            val old=async(Dispatchers.Default){runCatching {if(restoring)finance.restoreLastProfile()else finance.select(first)}}
             withTimeout(10000){entered.await()}
             val current=async(start=CoroutineStart.UNDISPATCHED){finance.select(second)}
             assertNull(finance.workspace.value)
