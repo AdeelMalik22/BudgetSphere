@@ -32,7 +32,7 @@ import java.io.File
     SectionCard("Receipts") {
         data.attachments.filter {it.transactionId==tx.id}.forEach {attachment->
             Row {
-                AsyncImage(store.file(scope,attachment.thumbnail),"Receipt thumbnail",modifier=Modifier.size(72.dp).clickable {preview=attachment})
+                AsyncImage(store.file(scope,attachment.thumbnail),"Receipt thumbnail",modifier=Modifier.size(72.dp).clickable {preview=attachment},onError={vm.notify("Receipt image is missing or unreadable. Remove it and add it again.")})
                 TextButton(onClick={preview=attachment}){Text("View")};TextButton(onClick={remove=attachment}){Text("Remove")}
             }
         }
@@ -41,6 +41,6 @@ import java.io.File
         }){Text("Camera")}}
         Text("Images stay in private app storage. Maximum import size: 20 MB.",style=MaterialTheme.typography.bodySmall)
     }
-    if(!hidden) preview?.let {attachment->Dialog(onDismissRequest={preview=null}){Surface {Column(Modifier.padding(16.dp)){AsyncImage(store.file(scope,attachment.filename),"Receipt image",modifier=Modifier.fillMaxWidth().heightIn(max=500.dp));TextButton(onClick={preview=null}){Text("Close")}}}}}
+    if(!hidden) preview?.let {attachment->Dialog(onDismissRequest={preview=null}){Surface {Column(Modifier.padding(16.dp)){AsyncImage(store.file(scope,attachment.filename),"Receipt image",modifier=Modifier.fillMaxWidth().heightIn(max=500.dp),onError={vm.notify("Receipt image is missing or unreadable. Remove it and add it again.")});TextButton(onClick={preview=null}){Text("Close")}}}}}
     remove?.let {attachment->ConfirmDialog("Remove receipt?","This permanently removes the saved image.",{remove=null},{vm.perform("Receipt removed"){store.remove(scope,attachment.id)};remove=null})}
 }
