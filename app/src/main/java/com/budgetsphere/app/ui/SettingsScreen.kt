@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,5 +56,5 @@ import kotlinx.coroutines.flow.map
 @Composable private fun SwitchRow(label: String,value: Boolean,onChange: (Boolean)->Unit) {Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){Text(label,modifier=Modifier.weight(1f));Switch(value,onChange)}}
 @Composable private fun ChangePassword(vm: AppViewModel,biometrics: Biometrics,dismiss: ()->Unit) {
     var current by remember {mutableStateOf("")};var next by remember {mutableStateOf("")};var confirm by remember {mutableStateOf("")};val busy by vm.busy.collectAsState()
-    AlertDialog(onDismissRequest=dismiss,title={Text("Change password")},text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)){FormField("Current password",current,{current=it},password=true);FormField("New password (12+ characters)",next,{next=it},password=true);FormField("Confirm new password",confirm,{confirm=it},password=true);Text("Biometric unlock will be disabled until you enable it again.",style=MaterialTheme.typography.bodySmall)}},confirmButton={TextButton(enabled=!busy,onClick={vm.perform("Password changed"){val id=vm.accounts.requireAccount().id;vm.accounts.changePassword(current.toCharArray(),next.toCharArray(),confirm.toCharArray());biometrics.remove(id);current="";next="";confirm="";dismiss()}}){Text("Change password")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
+    AlertDialog(onDismissRequest=dismiss,title={Text("Change password")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){FormField("Current password",current,{current=it},password=true);FormField("New password (12+ characters)",next,{next=it},password=true);FormField("Confirm new password",confirm,{confirm=it},password=true);Text("Biometric unlock will be disabled until you enable it again.",style=MaterialTheme.typography.bodySmall)}},confirmButton={TextButton(enabled=!busy,onClick={vm.perform("Password changed"){val id=vm.accounts.requireAccount().id;vm.accounts.changePassword(current.toCharArray(),next.toCharArray(),confirm.toCharArray());biometrics.remove(id);current="";next="";confirm="";dismiss()}}){Text("Change password")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
 }

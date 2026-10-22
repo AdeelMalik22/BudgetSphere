@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,7 +30,7 @@ import com.budgetsphere.app.domain.DocumentAuthorization
         item {SectionCard("Restore safely") {Text("Restore into new profiles under your currently authenticated account. Existing profiles are kept. If you lose a local account, first create a new account and restore using your backup passphrase. There is no remote recovery.");OutlinedButton(enabled=!hidden && !busy,onClick={mode="Restore"}){Text("Restore encrypted backup")}}}
         item {Text("Backups are limited to 80 MB before encryption. Save them outside app-private storage. Losing both your local account and backup passphrase makes recovery impossible. Transfers and reminder preferences are not cloud-synced.",style=MaterialTheme.typography.bodySmall)}
     }
-    if(mode.isNotEmpty() && !hidden) AlertDialog(onDismissRequest={mode="";password="";confirm=""},title={Text(when(mode){"CSV","JSON"->"Export unencrypted data?";"Backup"->"Set backup passphrase";else->"Restore into new profiles?"})},text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+    if(mode.isNotEmpty() && !hidden) AlertDialog(onDismissRequest={mode="";password="";confirm=""},title={Text(when(mode){"CSV","JSON"->"Export unencrypted data?";"Backup"->"Set backup passphrase";else->"Restore into new profiles?"})},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
         if(mode in listOf("CSV","JSON"))Text("Anyone with this file can read its financial information. Choose a trusted destination.")
         else {Text(if(mode=="Backup")"Keep this separate passphrase safe. It cannot be recovered." else "Existing records will be kept. Supported app appearance and privacy preferences will be restored from the backup. Enter its passphrase.");FormField("Backup passphrase",password,{password=it},password=true);if(mode=="Backup")FormField("Confirm passphrase",confirm,{confirm=it},password=true)}
     }},confirmButton={TextButton(onClick={when(mode){"CSV"->{authorization.authorize(scope,"CSV",!vm.hidden.value);mode="";exportCsv.launch("BudgetSphere.csv")};"JSON"->{authorization.authorize(scope,"JSON",!vm.hidden.value);mode="";exportJson.launch("BudgetSphere.json")};"Backup"->{if(password.length !in 12..256 || password!=confirm)vm.notify("Use 12–256 characters and matching passphrases")else{authorization.authorize(scope,"Backup",!vm.hidden.value);mode="";backup.launch("BudgetSphere.bsp")}};"Restore"->{if(password.length !in 12..256)vm.notify("Enter the backup passphrase (12–256 characters)")else{authorization.authorize(scope,"Restore",!vm.hidden.value);mode="";restore.launch(arrayOf("application/octet-stream","*/*"))}}}}){Text("Continue")}},dismissButton={TextButton(onClick={mode="";password="";confirm=""}){Text("Cancel")}})

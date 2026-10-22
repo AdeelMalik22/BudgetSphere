@@ -1,6 +1,8 @@
 package com.budgetsphere.app.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -25,7 +27,7 @@ import com.budgetsphere.app.data.*
 }
 @Composable private fun CategoryForm(data: WorkspaceData,vm: AppViewModel,original: CategoryEntity?,dismiss: ()->Unit) {
     var name by remember {mutableStateOf(original?.name?:"")};var kind by remember {mutableStateOf(original?.kind?:"EXPENSE")};var icon by remember {mutableStateOf(original?.icon?:"Category")};var color by remember {mutableStateOf(original?.color?:colorChoices.first())};val busy by vm.busy.collectAsState()
-    AlertDialog(onDismissRequest=dismiss,title={Text(if(original==null)"New category" else "Edit category")},text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+    AlertDialog(onDismissRequest=dismiss,title={Text(if(original==null)"New category" else "Edit category")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
         FormField("Category name",name,{name=it})
         if(original==null)Choice("Type",kind,listOf("EXPENSE" to "Expense","INCOME" to "Income"),{kind=it})
         Choice("Icon",icon,iconNames.map {it to it},{icon=it})

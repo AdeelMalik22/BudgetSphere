@@ -1,6 +1,8 @@
 package com.budgetsphere.app.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -34,7 +36,7 @@ import java.time.YearMonth
     var category by remember {mutableStateOf(original?.categoryId?:"")};var month by remember {mutableStateOf(original?.month?:YearMonth.now().toString())};var amount by remember {mutableStateOf(original?.let {Money.decimal(it.amount,data.workspace.profile.currency)}?:"")}
     val hidden by vm.hidden.collectAsState();val busy by vm.busy.collectAsState()
     if(hidden){LaunchedEffect(Unit){dismiss()};return}
-    AlertDialog(onDismissRequest=dismiss,title={Text(if(original==null)"New budget" else "Edit budget")},text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+    AlertDialog(onDismissRequest=dismiss,title={Text(if(original==null)"New budget" else "Edit budget")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
         Choice("Category",category,listOf("" to "Overall monthly budget")+data.categories.filter {it.kind=="EXPENSE"}.map {it.id to it.name},{category=it})
         FormField("Month (YYYY-MM)",month,{month=it});FormField("Amount (${data.workspace.profile.currency})",amount,{amount=it},numeric=true)
     }},confirmButton={TextButton(enabled=!busy,onClick={vm.perform("Budget saved"){vm.finance.saveBudget(data.workspace.scope,original?.id,category.ifBlank {null},month,amount);dismiss()}}){Text("Save")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})

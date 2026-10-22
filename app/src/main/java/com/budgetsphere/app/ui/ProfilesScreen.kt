@@ -1,6 +1,8 @@
 package com.budgetsphere.app.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -36,7 +38,7 @@ import java.util.Currency
 @Composable private fun ProfileForm(profile: ProfileEntity?,vm: AppViewModel,dismiss: ()->Unit) {
     var name by remember {mutableStateOf(profile?.name?:"")};var description by remember {mutableStateOf(profile?.description?:"")};var currency by remember {mutableStateOf(profile?.currency?:"PKR")};var color by remember {mutableStateOf(profile?.color?:colorChoices.first())};var icon by remember {mutableStateOf(profile?.icon?:"Person")}
     val busy by vm.busy.collectAsState()
-    AlertDialog(onDismissRequest=dismiss,title={Text(if(profile==null)"New profile" else "Edit profile")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
+    AlertDialog(onDismissRequest=dismiss,title={Text(if(profile==null)"New profile" else "Edit profile")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
         FormField("Profile name",name,{name=it});FormField("Description (optional)",description,{description=it})
         Choice("Currency",currency,Currency.getAvailableCurrencies().sortedBy {it.currencyCode}.map {it.currencyCode to it.currencyCode},{currency=it})
         Choice("Icon",icon,iconNames.map {it to it},{icon=it})

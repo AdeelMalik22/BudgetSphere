@@ -1,6 +1,8 @@
 package com.budgetsphere.app.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -27,7 +29,7 @@ import java.security.MessageDigest
 @Composable private fun AccountWorkspace(vm: AppViewModel,biometrics: Biometrics,receipts: ReceiptStore,portability: Portability) {
     val workspace by vm.workspace.collectAsStateWithLifecycle();var manage by remember {mutableStateOf(false)}
     if(workspace==null || manage) {
-        Column {if(workspace!=null)TextButton(onClick={manage=false}){Text("Back to workspace")};Box(Modifier.weight(1f)){ProfilesScreen(vm,{manage=false})}}
+        Column {Row {if(workspace!=null)TextButton(onClick={manage=false}){Text("Back to workspace")};TextButton(onClick=vm::logout){Text("Log out")}};Box(Modifier.weight(1f)){ProfilesScreen(vm,{manage=false})}}
         return
     }
     val selected=workspace?:return
@@ -71,5 +73,5 @@ import java.security.MessageDigest
 }
 @Composable private fun PasswordGate(title: String,vm: AppViewModel,dismiss: ()->Unit,submit: (String)->Unit,biometricAction: (()->Unit)?=null,warning: String?=null) {
     var password by remember {mutableStateOf("")};val busy by vm.busy.collectAsStateWithLifecycle()
-    AlertDialog(onDismissRequest=dismiss,title={Text(title)},text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)){warning?.let {Text(it)};FormField("Account password",password,{password=it},password=true);if(biometricAction!=null)OutlinedButton(enabled=!busy,onClick=biometricAction){Text("Use biometrics")}}},confirmButton={TextButton(enabled=!busy,onClick={val value=password;password="";submit(value)}){Text("Verify password")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
+    AlertDialog(onDismissRequest=dismiss,title={Text(title)},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){warning?.let {Text(it)};FormField("Account password",password,{password=it},password=true);if(biometricAction!=null)OutlinedButton(enabled=!busy,onClick=biometricAction){Text("Use biometrics")}}},confirmButton={TextButton(enabled=!busy,onClick={val value=password;password="";submit(value)}){Text("Verify password")}},dismissButton={TextButton(onClick=dismiss){Text("Cancel")}})
 }
