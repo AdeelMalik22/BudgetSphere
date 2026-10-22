@@ -18,9 +18,10 @@ import java.security.MessageDigest
 
 @Composable fun BudgetApp(vm: AppViewModel,biometrics: Biometrics,receipts: ReceiptStore,portability: Portability) {
     val account by vm.session.collectAsStateWithLifecycle();val prefs by vm.preferences.collectAsStateWithLifecycle();val message by vm.message.collectAsStateWithLifecycle();val busy by vm.busy.collectAsStateWithLifecycle()
+    val activeWorkspace by vm.workspace.collectAsStateWithLifecycle()
     val snackbar=remember {SnackbarHostState()}
     LaunchedEffect(message){message?.let {vm.message.value=null;snackbar.showSnackbar(it)}}
-    BudgetSphereTheme(prefs.theme) {
+    BudgetSphereTheme(prefs.theme,activeWorkspace?.profile?.color?.let {androidx.compose.ui.graphics.Color(it)}) {
         Scaffold(snackbarHost={SnackbarHost(snackbar)}) {padding->Column(Modifier.fillMaxSize().padding(padding)){
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
             key(account?.id){if(account==null)AuthScreen(vm,biometrics)else AccountWorkspace(vm,biometrics,receipts,portability)}
