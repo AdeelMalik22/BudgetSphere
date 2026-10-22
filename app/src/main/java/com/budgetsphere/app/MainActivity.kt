@@ -24,12 +24,21 @@ import kotlinx.coroutines.flow.combine
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen();super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        if(android.os.Build.VERSION.SDK_INT>=33)setRecentsScreenshotEnabled(false)
         lifecycleScope.launch {
             combine(vm.hidden,vm.preferences){hidden,prefs->hidden || prefs.screenshotProtection}.collect {secure->
                 if(secure)window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
         }
         setContent {BudgetApp(vm,Biometrics(this),receipts,portability)}
+    }
+    override fun onPause() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        super.onPause()
+    }
+    override fun onResume() {
+        super.onResume()
+        if(vm.hidden.value || vm.preferences.value.screenshotProtection)window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
     override fun onStop() {
         // Recents must never capture financial content, even when user screenshots are enabled.
