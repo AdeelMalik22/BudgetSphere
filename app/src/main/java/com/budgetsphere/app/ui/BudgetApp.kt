@@ -36,10 +36,19 @@ import java.security.MessageDigest
     }
     val selected=workspace?:return
     key(selected.scope,selected.profile){
-        val flow=remember(selected){vm.finance.observeWorkspace(selected)}
-        val data by flow.collectAsStateWithLifecycle(initialValue=null)
-        if(data==null)Box(Modifier.fillMaxSize(),contentAlignment=androidx.compose.ui.Alignment.Center){CircularProgressIndicator()}
-        else WorkspaceNavigation(data!!,vm,biometrics,receipts,portability,{manage=true})
+        var retry by remember {mutableIntStateOf(0)}
+        val flow=remember(selected,retry){vm.finance.observeWorkspace(selected).asLoadState()}
+        val load by key(flow){flow.collectAsStateWithLifecycle(initialValue=LoadState.Loading)}
+        when(val state=load) {
+            LoadState.Loading->Box(Modifier.fillMaxSize(),contentAlignment=androidx.compose.ui.Alignment.Center){CircularProgressIndicator()}
+            is LoadState.Ready->WorkspaceNavigation(state.data,vm,biometrics,receipts,portability,{manage=true})
+            LoadState.Failed->Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                EmptyState("Workspace unavailable","We couldn't read this workspace. Check available storage, then retry.")
+                Button(onClick={retry++}){Text("Retry")}
+                TextButton(onClick={manage=true}){Text("Manage profiles")}
+                TextButton(onClick=vm::logout){Text("Log out")}
+            }
+        }
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)

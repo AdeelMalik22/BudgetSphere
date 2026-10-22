@@ -28,10 +28,12 @@ import java.time.format.DateTimeFormatter
     val upper=runCatching {if(maximum.isBlank())Long.MAX_VALUE else Money.parse(maximum,data.workspace.profile.currency)}
     val invalid=range.isFailure || lower.isFailure || upper.isFailure || (lower.getOrDefault(0)>upper.getOrDefault(Long.MAX_VALUE))
     val scope=data.workspace.scope
-    val flow=remember(scope,search,category,kind,period,start,end,minimum,maximum,sort,limit,invalid) {
-        if(invalid) kotlinx.coroutines.flow.flowOf(emptyList()) else vm.finance.history(scope,TransactionFilter(range.getOrThrow(),kind,category,search,lower.getOrThrow(),upper.getOrThrow(),sort,limit))
+    var retry by remember {mutableIntStateOf(0)}
+    val flow=remember(scope,retry,search,category,kind,period,start,end,minimum,maximum,sort,limit,invalid) {
+        (if(invalid) kotlinx.coroutines.flow.flowOf(emptyList()) else vm.finance.history(scope,TransactionFilter(range.getOrThrow(),kind,category,search,lower.getOrThrow(),upper.getOrThrow(),sort,limit))).asLoadState()
     }
-    val rows by flow.collectAsState(initial=emptyList())
+    val load by key(flow){flow.collectAsState(initial=LoadState.Loading)}
+    val rows=(load as? LoadState.Ready)?.data?:emptyList()
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item {Row {Text("Transactions",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.weight(1f));IconButton(onClick=onAdd){Icon(Icons.Outlined.Add,"Add transaction")}}}
         item {FormField("Search title or tags",search,{search=it;limit=100})}
@@ -45,6 +47,8 @@ import java.time.format.DateTimeFormatter
             Choice("Sort",sort,listOf("newest" to "Newest first","oldest" to "Oldest first","amount" to "Largest amount"),{sort=it})
         }}
         if(invalid) item {Text("Check date and amount ranges.",color=MaterialTheme.colorScheme.error)}
+        else if(load==LoadState.Loading)item{LinearProgressIndicator(Modifier.fillMaxWidth())}
+        else if(load==LoadState.Failed)item{Text("History could not be loaded. Check storage and retry.");TextButton(onClick={retry++}){Text("Retry")}}
         else if(rows.isEmpty()) item {EmptyState("No matching transactions","Add your first transaction or adjust the filters.")}
         var previousDate: Long?=null
         rows.forEach { tx->

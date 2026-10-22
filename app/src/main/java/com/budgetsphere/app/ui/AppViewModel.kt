@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.*
     val busy=MutableStateFlow(false)
     val message=MutableStateFlow<String?>(null)
     val preferences=settings.preferences.stateIn(viewModelScope,SharingStarted.Eagerly,Preferences())
-    val profiles=finance.profiles().stateIn(viewModelScope,SharingStarted.Eagerly,emptyList())
+    val profiles=finance.profiles().catch {message.value="Profiles could not be loaded. Check available storage and reopen the app.";emit(emptyList())}.stateIn(viewModelScope,SharingStarted.Eagerly,emptyList())
     val session=accounts.session
     val workspace=finance.workspace
     val hidden=privacy.hidden
@@ -25,9 +25,11 @@ import kotlinx.coroutines.flow.*
             accounts.session.map {it?.id}.distinctUntilChanged().collectLatest { account->
                 finance.clearWorkspace()
                 if(account!=null) {
-                    val saved=settings.active(account).first()
-                    val available=finance.loadProfiles()
-                    (available.find {it.id==saved}?:available.firstOrNull())?.let { finance.select(it.id) }
+                    try {
+                        val saved=settings.active(account).first()
+                        val available=finance.loadProfiles()
+                        (available.find {it.id==saved}?:available.firstOrNull())?.let {finance.select(it.id)}
+                    }catch(cancel: CancellationException){throw cancel}catch(_:Exception){message.value="Your last workspace could not be restored. Check storage or choose a profile."}
                 }
             }
         }
