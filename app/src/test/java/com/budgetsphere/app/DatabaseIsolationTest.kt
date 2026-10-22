@@ -41,6 +41,17 @@ class DatabaseIsolationTest {
         dao.deleteProfile("a","personal")
         assertTrue(dao.attachmentList("a","personal").isEmpty());assertTrue(dao.transactionList("a","personal").isEmpty());assertEquals(1,dao.transactionList("b","personal").size)
     }
+    @Test fun recordsSurviveClosingAndReopeningPersistentDatabase()=runBlocking {
+        db.close()
+        val context=ApplicationProvider.getApplicationContext<Application>()
+        context.deleteDatabase("persistence-test.db")
+        db=Room.databaseBuilder(context,BudgetDatabase::class.java,"persistence-test.db").build();dao=db.dao()
+        dao.insertAccount(AccountEntity("a","Owner","owner",ByteArray(32),ByteArray(32)))
+        dao.putProfile(ProfileEntity("a","personal","Personal"));dao.putCategory(CategoryEntity("a","personal","food","Food"));dao.putTransaction(tx("a","personal"))
+        db.close();db=Room.databaseBuilder(context,BudgetDatabase::class.java,"persistence-test.db").build();dao=db.dao()
+        assertEquals(500L,dao.transaction("a","personal","tx")?.amount)
+        assertEquals("Personal",dao.profile("a","personal")?.name)
+    }
     @Test fun filtersDatesAndUpdatesRemainScoped()=runBlocking {
         dao.putTransaction(tx("a","personal","old").copy(date=1));dao.putTransaction(tx("a","personal","new").copy(date=5,title="Bus",amount=700))
         val result=dao.transactions("a","personal",2,6,"EXPENSE","food","bus",600,800,"newest",100).first()
