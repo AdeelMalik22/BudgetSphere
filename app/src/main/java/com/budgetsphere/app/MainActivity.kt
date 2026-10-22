@@ -14,44 +14,68 @@ import com.budgetsphere.app.ui.AppViewModel
 import com.budgetsphere.app.ui.BudgetApp
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
-@AndroidEntryPoint class MainActivity : FragmentActivity() {
+@AndroidEntryPoint
+class MainActivity : FragmentActivity() {
     private val vm: AppViewModel by viewModels()
     @Inject lateinit var receipts: ReceiptStore
     @Inject lateinit var portability: Portability
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen();super.onCreate(savedInstanceState)
+        installSplashScreen()
+        super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        if(android.os.Build.VERSION.SDK_INT>=33)setRecentsScreenshotEnabled(false)
+        if (android.os.Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false)
         lifecycleScope.launch {
-            combine(vm.hidden,vm.preferences){hidden,prefs->hidden || prefs.screenshotProtection}.collect {secure->
-                if(secure)window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-            }
+            combine(vm.hidden, vm.preferences) { hidden, prefs ->
+                    hidden || prefs.screenshotProtection
+                }
+                .collect { secure ->
+                    if (secure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
         }
         lifecycleScope.launch {
-            vm.workspace.filterNotNull().collectLatest { workspace->
-                try {receipts.collectOrphans(workspace.scope)}catch(cancel: kotlinx.coroutines.CancellationException){throw cancel}catch(_:Exception){/* Cleanup retries on the next workspace activation. */}
+            vm.workspace.filterNotNull().collectLatest { workspace ->
+                try {
+                    receipts.collectOrphans(workspace.scope)
+                } catch (cancel: kotlinx.coroutines.CancellationException) {
+                    throw cancel
+                } catch (_: Exception) {
+                    /* Cleanup retries on the next workspace activation. */
+                }
             }
         }
-        setContent {BudgetApp(vm,Biometrics(this),receipts,portability)}
+        setContent { BudgetApp(vm, Biometrics(this), receipts, portability) }
     }
+
     override fun onPause() {
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         super.onPause()
     }
+
     override fun onResume() {
         super.onResume()
-        if(vm.hidden.value || vm.preferences.value.screenshotProtection)window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        if (vm.hidden.value || vm.preferences.value.screenshotProtection)
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
     }
+
     override fun onStop() {
         // Recents must never capture financial content, even when user screenshots are enabled.
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        if(vm.preferences.value.autoHide)vm.privacy.hide()
+        if (vm.preferences.value.autoHide) vm.privacy.hide()
         super.onStop()
     }
-    override fun onStart() {super.onStart();if(vm.hidden.value || vm.preferences.value.screenshotProtection)window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)}
+
+    override fun onStart() {
+        super.onStart()
+        if (vm.hidden.value || vm.preferences.value.screenshotProtection)
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
 }

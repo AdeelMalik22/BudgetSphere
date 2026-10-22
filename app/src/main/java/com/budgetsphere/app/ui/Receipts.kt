@@ -1,6 +1,5 @@
 package com.budgetsphere.app.ui
 
-import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -20,27 +19,136 @@ import com.budgetsphere.app.data.*
 import com.budgetsphere.app.domain.*
 import java.io.File
 
-@Composable fun Receipts(data: WorkspaceData,tx: FinancialTransaction,store: ReceiptStore,vm: AppViewModel,hidden: Boolean) {
-    val context=LocalContext.current;val scope=data.workspace.scope
-    var preview by remember {mutableStateOf<Attachment?>(null)};var remove by remember {mutableStateOf<Attachment?>(null)}
-    var cameraPath by rememberSaveable {mutableStateOf<String?>(null)}
-    val cameraFile=cameraPath?.let {path->File(path).takeIf {it.parentFile?.canonicalFile==File(context.cacheDir,"camera").canonicalFile}}
+@Composable
+fun Receipts(
+    data: WorkspaceData,
+    tx: FinancialTransaction,
+    store: ReceiptStore,
+    vm: AppViewModel,
+    hidden: Boolean,
+) {
+    val context = LocalContext.current
+    val scope = data.workspace.scope
+    var preview by remember { mutableStateOf<Attachment?>(null) }
+    var remove by remember { mutableStateOf<Attachment?>(null) }
+    var cameraPath by rememberSaveable { mutableStateOf<String?>(null) }
+    val cameraFile = cameraPath?.let { path ->
+        File(path).takeIf {
+            it.parentFile?.canonicalFile == File(context.cacheDir, "camera").canonicalFile
+        }
+    }
     val currentScope by rememberUpdatedState(scope)
-    val picker=rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {uri->if(uri!=null)vm.perform("Receipt added"){store.import(currentScope,tx.id,uri)}}
-    val camera=rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {success->val file=cameraFile;if(success && file!=null)vm.perform("Receipt added"){try{store.import(currentScope,tx.id,Uri.fromFile(file))}finally{file.delete();cameraPath=null}} else {file?.delete();cameraPath=null}}
-    if(hidden) {Text("Receipts are hidden for privacy.");return}
-    SectionCard("Receipts") {
-        data.attachments.filter {it.transactionId==tx.id}.forEach {attachment->
-            Row {
-                AsyncImage(store.file(scope,attachment.thumbnail),"Receipt thumbnail",modifier=Modifier.size(72.dp).clickable {preview=attachment},onError={vm.notify("Receipt image is missing or unreadable. Remove it and add it again.")})
-                TextButton(onClick={preview=attachment}){Text("View")};TextButton(onClick={remove=attachment}){Text("Remove")}
+    val picker =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) vm.perform("Receipt added") { store.import(currentScope, tx.id, uri) }
+        }
+    val camera =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            val file = cameraFile
+            if (success && file != null)
+                vm.perform("Receipt added") {
+                    try {
+                        store.import(currentScope, tx.id, Uri.fromFile(file))
+                    } finally {
+                        file.delete()
+                        cameraPath = null
+                    }
+                }
+            else {
+                file?.delete()
+                cameraPath = null
             }
         }
-        Row {OutlinedButton(onClick={picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))}){Text("Gallery")};Spacer(Modifier.width(8.dp));OutlinedButton(onClick={
-            try {val dir=File(context.cacheDir,"camera").apply {mkdirs()};val file=File.createTempFile("receipt-",".jpg",dir);cameraPath=file.path;camera.launch(FileProvider.getUriForFile(context,"${context.packageName}.files",file))}catch(_:Exception){cameraFile?.delete();vm.notify("No camera is available. Choose an image from Gallery.")}
-        }){Text("Camera")}}
-        Text("Images stay in private app storage. Maximum import size: 20 MB.",style=MaterialTheme.typography.bodySmall)
+    if (hidden) {
+        Text("Receipts are hidden for privacy.")
+        return
     }
-    if(!hidden) preview?.let {attachment->Dialog(onDismissRequest={preview=null}){Surface {Column(Modifier.padding(16.dp)){AsyncImage(store.file(scope,attachment.filename),"Receipt image",modifier=Modifier.fillMaxWidth().heightIn(max=500.dp),onError={vm.notify("Receipt image is missing or unreadable. Remove it and add it again.")});TextButton(onClick={preview=null}){Text("Close")}}}}}
-    remove?.let {attachment->ConfirmDialog("Remove receipt?","This permanently removes the saved image.",{remove=null},{vm.perform("Receipt removed"){store.remove(scope,attachment.id)};remove=null})}
+    SectionCard("Receipts") {
+        data.attachments
+            .filter { it.transactionId == tx.id }
+            .forEach { attachment ->
+                Row {
+                    AsyncImage(
+                        store.file(scope, attachment.thumbnail),
+                        "Receipt thumbnail",
+                        modifier = Modifier.size(72.dp).clickable { preview = attachment },
+                        onError = {
+                            vm.notify(
+                                "Receipt image is missing or unreadable. Remove it and add it again."
+                            )
+                        },
+                    )
+                    TextButton(onClick = { preview = attachment }) { Text("View") }
+                    TextButton(onClick = { remove = attachment }) { Text("Remove") }
+                }
+            }
+        Row {
+            OutlinedButton(
+                onClick = {
+                    picker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
+            ) {
+                Text("Gallery")
+            }
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(
+                onClick = {
+                    try {
+                        val dir = File(context.cacheDir, "camera").apply { mkdirs() }
+                        val file = File.createTempFile("receipt-", ".jpg", dir)
+                        cameraPath = file.path
+                        camera.launch(
+                            FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.files",
+                                file,
+                            )
+                        )
+                    } catch (_: Exception) {
+                        cameraFile?.delete()
+                        vm.notify("No camera is available. Choose an image from Gallery.")
+                    }
+                }
+            ) {
+                Text("Camera")
+            }
+        }
+        Text(
+            "Images stay in private app storage. Maximum import size: 20 MB.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+    if (!hidden)
+        preview?.let { attachment ->
+            Dialog(onDismissRequest = { preview = null }) {
+                Surface {
+                    Column(Modifier.padding(16.dp)) {
+                        AsyncImage(
+                            store.file(scope, attachment.filename),
+                            "Receipt image",
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp),
+                            onError = {
+                                vm.notify(
+                                    "Receipt image is missing or unreadable. Remove it and add it again."
+                                )
+                            },
+                        )
+                        TextButton(onClick = { preview = null }) { Text("Close") }
+                    }
+                }
+            }
+        }
+    remove?.let { attachment ->
+        ConfirmDialog(
+            "Remove receipt?",
+            "This permanently removes the saved image.",
+            { remove = null },
+            {
+                vm.perform("Receipt removed") { store.remove(scope, attachment.id) }
+                remove = null
+            },
+        )
+    }
 }

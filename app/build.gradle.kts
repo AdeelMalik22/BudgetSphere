@@ -5,6 +5,7 @@ plugins {
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
+
 android {
     namespace = "com.budgetsphere.app"
     compileSdk = 36
@@ -17,11 +18,16 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
-    compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
     testOptions { unitTests.isIncludeAndroidResources = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
+
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
+
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2025.11.01"))
     implementation("androidx.core:core-ktx:1.17.0")
