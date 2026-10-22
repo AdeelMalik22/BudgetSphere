@@ -62,7 +62,7 @@ import java.time.YearMonth
                 else {
                     val selectedRange=range.getOrThrow()
                     val firstMonth=YearMonth.from(LocalDate.ofEpochDay(selectedRange.start));val lastMonth=YearMonth.from(LocalDate.ofEpochDay(selectedRange.end))
-                    val count=minOf(12,java.time.temporal.ChronoUnit.MONTHS.between(firstMonth,lastMonth).toInt()+1)
+                    val count=minOf(12L,java.time.temporal.ChronoUnit.MONTHS.between(firstMonth,lastMonth)+1).toInt()
                     val months=(count-1 downTo 0).map {lastMonth.minusMonths(it.toLong())}
                     val values=months.map {month->report?.months?.get(month)?:0L}
                     val color=MaterialTheme.colorScheme.primary
