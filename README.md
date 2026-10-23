@@ -2,10 +2,12 @@
 
 A native offline personal expense and budget manager for Android 8.0+ (API 26), built with Kotlin, Jetpack Compose, Material 3, Hilt, Room, DataStore, Coroutines/Flow, and Navigation Compose.
 
+This repository is an active development project. The automated verification results are recorded in [docs/verification.md](docs/verification.md); device-only acceptance and release signing remain outstanding.
+
 ## Capabilities
 
 - Local account signup/login, password changes, logout, and Android Keystore-backed biometric enrollment/unlock.
-- Authenticated financial privacy controls shared across every destination, with default hiding, background locking, and screenshot/recent-app protection.
+- Authenticated financial privacy controls with default hiding, background locking, and screenshot/recent-app protection.
 - Independent profiles with names, descriptions, icons, colors, and currencies; account/profile ownership is enforced in persistence and repositories.
 - Expense and income CRUD, exact integer-minor-unit money, categories, date/type/amount/category filters, title/tag search, sorting, and incrementally loaded history.
 - Private gallery/camera receipts, compressed images, thumbnails, preview/removal, and cleanup on financial-record deletion.
@@ -46,7 +48,7 @@ The cloud scripts preserve TLS verification, verify downloaded tool checksums, a
 
 ## Tests and verification
 
-Unit and Robolectric tests exercise monetary precision/overflow, dates, password verifiers, privacy grants, Room ownership/cascades and reopening, repository workflows, receipt cleanup, export isolation, encrypted backups with receipts, malformed backups, and a full Compose workflow including profile switching. An equivalent instrumentation flow is provided for an actual emulator/device.
+Unit and Robolectric tests exercise monetary precision/overflow, dates, password verifiers, privacy grants, Room ownership/cascades and reopening, repository workflows, receipt cleanup, export isolation, encrypted backups with receipts, malformed backups, and a full Compose workflow including profile switching. An equivalent instrumentation flow is provided for an actual emulator/device. The recorded verification results are not a substitute for running the checks in the current environment.
 
 See [docs/verification.md](docs/verification.md) for results and remaining hardware/device checks. GitHub Actions runs build, JVM tests, lint, and instrumentation APK assembly on pushes/PRs; configuring a workflow does not itself prove a remote run passed.
 
@@ -65,8 +67,12 @@ The initial schema is exported under `app/schemas`. Every future schema version 
 
 Read [SECURITY.md](SECURITY.md) before relying on local authentication or backups. Financial files rely on Android's sandbox/device encryption and are not independently encrypted at rest by this app. CSV/JSON are unencrypted; encrypted backups require a separate passphrase. Restore adds new profiles and preserves existing data. Changing a currency is blocked after records/budgets exist; historical money is never converted using invented exchange rates.
 
+The privacy lock currently masks monetary values, charts, and sensitive form contents. Descriptive financial metadata such as transaction titles, category names, and dates still needs a complete locked-state masking pass before the privacy feature should be considered production-ready.
+
 Biometric enrollment, camera providers, notification delivery, device/OEM lifecycle behavior, accessibility tooling, and Storage Access Framework providers need device testing. Baseline profiles and additional caches are deliberately omitted until measurement justifies them.
 
 Branding sources and a 1024×1024 PNG are in [branding](branding); optional regeneration uses `python tools/render_branding.py` with Pillow. Launcher, monochrome, and splash assets are native Android resources.
 
 The phase plan and acceptance walkthroughs are in [plan.md](plan.md). Features and fixes are committed and pushed individually.
+
+Contributor and coding-agent context is in [CODEX.md](CODEX.md).
