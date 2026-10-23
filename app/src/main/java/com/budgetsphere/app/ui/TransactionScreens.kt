@@ -1,5 +1,6 @@
 package com.budgetsphere.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,10 +26,10 @@ fun TransactionRow(
 ) {
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
-        headlineContent = { Text(tx.title) },
+        headlineContent = { Text(if (hidden) "Private transaction" else tx.title) },
         supportingContent = {
             Text(
-                "${category?.name?:"Category"} · ${LocalDate.ofEpochDay(tx.date).format(DateTimeFormatter.ofPattern(format))}"
+                if (hidden) "Unlock to view details" else "${category?.name?:"Category"} · ${LocalDate.ofEpochDay(tx.date).format(DateTimeFormatter.ofPattern(format))}"
             )
         },
         leadingContent = {
@@ -127,16 +128,8 @@ fun TransactionsScreen(
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item {
-            Row {
-                Text(
-                    "Transactions",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = onAdd) { Icon(Icons.Outlined.Add, "Add transaction") }
-            }
-        }
+        item { ScreenHeader(eyebrow = "Activity", title = "Transactions", subtitle = "Your income and spending, in one calm timeline.", action = { FilledTonalIconButton(onClick = onAdd) { Icon(Icons.Outlined.Add, "Add transaction") } }) }
+        item { PrivacyNotice(hidden) }
         item {
             FormField(
                 "Search title or tags",
@@ -147,12 +140,7 @@ fun TransactionsScreen(
                 },
             )
         }
-        item {
-            TextButton(onClick = { filters = !filters }) {
-                Icon(Icons.Outlined.FilterList, null)
-                Text(if (filters) "Hide filters" else "Filter & sort")
-            }
-        }
+        item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { FilledTonalButton(onClick = { filters = !filters }) { Icon(Icons.Outlined.FilterList, null); Spacer(Modifier.width(6.dp)); Text(if (filters) "Hide filters" else "Filter & sort") } } }
         if (filters)
             item {
                 SectionCard("Find transactions") {
@@ -226,12 +214,7 @@ fun TransactionsScreen(
         rows.forEach { tx ->
             if (previousDate != tx.date)
                 item(key = "date-${tx.date}-${tx.id}") {
-                    Text(
-                        LocalDate.ofEpochDay(tx.date)
-                            .format(DateTimeFormatter.ofPattern(prefs.dateFormat)),
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(top = 12.dp),
-                    )
+                    Text(if (hidden) "Private date" else LocalDate.ofEpochDay(tx.date).format(DateTimeFormatter.ofPattern(prefs.dateFormat)), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp, bottom = 2.dp))
                 }
             item(key = tx.id) {
                 TransactionRow(
@@ -244,8 +227,7 @@ fun TransactionsScreen(
             }
             previousDate = tx.date
         }
-        if (rows.size >= limit)
-            item { TextButton(onClick = { limit += 100 }) { Text("Load more") } }
+        if (rows.size >= limit) item { TextButton(onClick = { limit += 100 }, modifier = Modifier.fillMaxWidth()) { Text("Load more") } }
     }
 }
 
@@ -295,12 +277,7 @@ fun TransactionForm(
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Text(
-                if (original == null) "New transaction" else "Edit transaction",
-                style = MaterialTheme.typography.headlineMedium,
-            )
-        }
+        item { ScreenHeader(eyebrow = if (kind == "INCOME") "Income" else "Expense", title = if (original == null) "New transaction" else "Edit transaction", subtitle = "Keep it simple. You can add a receipt after saving.") }
         item {
             Choice(
                 "Type",
@@ -314,19 +291,19 @@ fun TransactionForm(
         }
         item {
             FormField(
+                if (kind == "INCOME") "Income source" else "Expense title",
+                title,
+                { title = it },
+                error = if (submitted) titleError else null,
+            )
+        }
+        item {
+            FormField(
                 "Amount (${data.workspace.profile.currency})",
                 amount,
                 { amount = it },
                 numeric = true,
                 error = if (submitted) amountError else null,
-            )
-        }
-        item {
-            FormField(
-                if (kind == "INCOME") "Income source" else "Expense title",
-                title,
-                { title = it },
-                error = if (submitted) titleError else null,
             )
         }
         item {
@@ -340,8 +317,9 @@ fun TransactionForm(
                 Text(categoryError, color = MaterialTheme.colorScheme.error)
         }
         item {
-            OutlinedButton(onClick = { picker = true }) {
+            OutlinedButton(onClick = { picker = true }, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small) {
                 Icon(Icons.Outlined.CalendarMonth, null)
+                Spacer(Modifier.width(8.dp))
                 Text(date)
             }
         }
@@ -352,10 +330,7 @@ fun TransactionForm(
         item { FormField("Payment method (optional)", payment, { payment = it }) }
         item { FormField("Tags (comma-separated, optional)", tags, { tags = it }) }
         item {
-            Text(
-                "Save the transaction to add or manage its receipts.",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Text("Save the transaction to add or manage its receipts.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item {
             Button(
@@ -430,16 +405,11 @@ fun TransactionDetails(
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
-            Text(tx.title, style = MaterialTheme.typography.headlineMedium)
-            MoneyText(tx.amount, tx.currency, hidden, true)
-        }
+        item { ScreenHeader(eyebrow = if (hidden) "Private record" else tx.kind.lowercase().replaceFirstChar(Char::uppercase), title = if (hidden) "Private transaction" else tx.title, subtitle = if (hidden) "Unlock to view this record" else LocalDate.ofEpochDay(tx.date).toString()); MoneyText(tx.amount, tx.currency, hidden, true) }
         item {
             SectionCard("Details") {
-                Text(
-                    "${tx.kind.lowercase().replaceFirstChar(Char::uppercase)} · ${data.categories.find {it.id==tx.categoryId}?.name?:"Category"}"
-                )
-                Text(LocalDate.ofEpochDay(tx.date).toString())
+                Text(if (hidden) "Private details" else "${tx.kind.lowercase().replaceFirstChar(Char::uppercase)} · ${data.categories.find {it.id==tx.categoryId}?.name?:"Category"}")
+                Text(if (hidden) "Unlock to view date" else LocalDate.ofEpochDay(tx.date).toString())
                 if (!hidden) {
                     if (tx.description.isNotBlank()) Text(tx.description)
                     if (tx.notes.isNotBlank()) Text(tx.notes)

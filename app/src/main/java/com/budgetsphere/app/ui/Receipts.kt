@@ -6,6 +6,8 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -64,10 +66,12 @@ fun Receipts(
         return
     }
     SectionCard("Receipts") {
+        Text("Private attachments", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         data.attachments
             .filter { it.transactionId == tx.id }
             .forEach { attachment ->
-                Row {
+                Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .45f)) {
+                Row(Modifier.padding(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     AsyncImage(
                         store.file(scope, attachment.thumbnail),
                         "Receipt thumbnail",
@@ -78,20 +82,21 @@ fun Receipts(
                             )
                         },
                     )
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) { Text("Receipt image", style = MaterialTheme.typography.bodyMedium); Text("Stored privately", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     TextButton(onClick = { preview = attachment }) { Text("View") }
-                    TextButton(onClick = { remove = attachment }) { Text("Remove") }
+                    IconButton(onClick = { remove = attachment }) { Icon(Icons.Outlined.DeleteOutline, "Remove receipt", tint = MaterialTheme.colorScheme.error) }
+                }
                 }
             }
         Row {
-            OutlinedButton(
+            FilledTonalButton(
                 onClick = {
                     picker.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }
-            ) {
-                Text("Gallery")
-            }
+            ) { Icon(Icons.Outlined.PhotoLibrary, null); Spacer(Modifier.width(6.dp)); Text("Gallery") }
             Spacer(Modifier.width(8.dp))
             OutlinedButton(
                 onClick = {
@@ -111,9 +116,7 @@ fun Receipts(
                         vm.notify("No camera is available. Choose an image from Gallery.")
                     }
                 }
-            ) {
-                Text("Camera")
-            }
+            ) { Icon(Icons.Outlined.PhotoCamera, null); Spacer(Modifier.width(6.dp)); Text("Camera") }
         }
         Text(
             "Images stay in private app storage. Maximum import size: 20 MB.",

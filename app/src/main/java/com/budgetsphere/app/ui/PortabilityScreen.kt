@@ -2,11 +2,14 @@ package com.budgetsphere.app.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -66,29 +69,17 @@ fun PortabilityScreen(
                 vm.perform { vm.notify(portability.restore(scope.account, uri, secret)) }
             else secret.fill('\u0000')
         }
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item { Text("Keep your data yours", style = MaterialTheme.typography.headlineMedium) }
-        if (hidden)
-            item {
-                EmptyState(
-                    "Unlock to continue",
-                    "Use the eye control to authenticate before exporting, backing up, or restoring financial records.",
-                )
-            }
+    LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentPadding = PaddingValues(20.dp, 18.dp, 20.dp, 36.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { ScreenHeader(eyebrow = "Portability", title = "Keep your data yours", subtitle = "Move a profile or protect your whole account.") }
+        item { PrivacyNotice(hidden) }
         item {
             SectionCard("Export active profile") {
                 Text(
                     "CSV and JSON exports are unencrypted. They contain only ${data.workspace.profile.name}'s transactions and metadata; receipt images are included only in encrypted account backups."
                 )
-                OutlinedButton(enabled = !hidden && !busy, onClick = { mode = "CSV" }) {
-                    Text("Export CSV")
-                }
-                OutlinedButton(enabled = !hidden && !busy, onClick = { mode = "JSON" }) {
-                    Text("Export JSON")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(enabled = !hidden && !busy, onClick = { mode = "CSV" }, modifier = Modifier.weight(1f)) { Icon(Icons.Outlined.TableChart, null); Spacer(Modifier.width(6.dp)); Text("CSV") }
+                    OutlinedButton(enabled = !hidden && !busy, onClick = { mode = "JSON" }, modifier = Modifier.weight(1f)) { Icon(Icons.Outlined.DataObject, null); Spacer(Modifier.width(6.dp)); Text("JSON") }
                 }
             }
         }
@@ -97,9 +88,7 @@ fun PortabilityScreen(
                 Text(
                     "Back up all profiles, categories, transactions, budgets, receipt images, and supported appearance/privacy preferences. Choose a separate passphrase with at least 12 characters. Account login credentials and biometric keys are never exported."
                 )
-                Button(enabled = !hidden && !busy, onClick = { mode = "Backup" }) {
-                    Text("Create encrypted backup")
-                }
+                Button(enabled = !hidden && !busy, onClick = { mode = "Backup" }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Lock, null); Spacer(Modifier.width(8.dp)); Text("Create encrypted backup") }
             }
         }
         item {
@@ -107,9 +96,7 @@ fun PortabilityScreen(
                 Text(
                     "Restore into new profiles under your currently authenticated account. Existing profiles are kept. If you lose a local account, first create a new account and restore using your backup passphrase. There is no remote recovery."
                 )
-                OutlinedButton(enabled = !hidden && !busy, onClick = { mode = "Restore" }) {
-                    Text("Restore encrypted backup")
-                }
+                OutlinedButton(enabled = !hidden && !busy, onClick = { mode = "Restore" }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.FileOpen, null); Spacer(Modifier.width(8.dp)); Text("Restore encrypted backup") }
             }
         }
         item {

@@ -1,7 +1,9 @@
 package com.budgetsphere.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -10,6 +12,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.*
@@ -42,11 +45,12 @@ fun BudgetApp(
         activeWorkspace?.profile?.color?.let { androidx.compose.ui.graphics.Color(it) },
     ) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbar) },
         ) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding)) {
-                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            Column(Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
+                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary)
                 key(account?.id) {
                     if (account == null) AuthScreen(vm, biometrics)
                     else AccountWorkspace(vm, biometrics, receipts, portability)
@@ -66,10 +70,11 @@ private fun AccountWorkspace(
     val workspace by vm.workspace.collectAsStateWithLifecycle()
     var manage by remember { mutableStateOf(false) }
     if (workspace == null || manage) {
-        Column(Modifier.safeDrawingPadding()) {
-            Row {
-                if (workspace != null)
-                    TextButton(onClick = { manage = false }) { Text("Back to workspace") }
+        Column(Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 20.dp)) {
+            Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                if (workspace != null) TextButton(onClick = { manage = false }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to workspace"); Spacer(Modifier.width(6.dp)); Text("Back to workspace") }
+                BrandMark(compact = true)
+                Spacer(Modifier.weight(1f))
                 TextButton(onClick = vm::logout) { Text("Log out") }
             }
             Box(Modifier.weight(1f)) { ProfilesScreen(vm, { manage = false }) }
@@ -152,6 +157,7 @@ private fun WorkspaceNavigation(
         }
     }
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -164,16 +170,11 @@ private fun WorkspaceNavigation(
                     }
                 },
                 navigationIcon = {
-                    if (route !in tabs.map { it.first })
-                        IconButton(onClick = { nav.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
-                        }
+                    if (route !in tabs.map { it.first }) IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
                 },
                 actions = {
                     Box {
-                        IconButton(onClick = { switcher = true }) {
-                            Icon(Icons.Outlined.SwitchAccount, "Switch profile")
-                        }
+                        IconButton(onClick = { switcher = true }) { Icon(Icons.Outlined.SwapHoriz, "Switch profile") }
                         DropdownMenu(switcher, { switcher = false }) {
                             profiles.forEach { profile ->
                                 DropdownMenuItem(
@@ -193,25 +194,15 @@ private fun WorkspaceNavigation(
                             )
                         }
                     }
-                    IconButton(
-                        onClick = {
-                            if (hidden) {
-                                challenge = vm.privacy.challenge()
-                                reveal = true
-                            } else vm.privacy.hide()
-                        }
-                    ) {
-                        Icon(
-                            if (hidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                            if (hidden) "Show financial information — authentication required"
-                            else "Hide all financial information",
-                        )
+                    IconButton(onClick = { if (hidden) { challenge = vm.privacy.challenge(); reveal = true } else vm.privacy.hide() }) {
+                        Icon(if (hidden) Icons.Outlined.Lock else Icons.Outlined.Visibility, if (hidden) "Show financial information — authentication required" else "Hide all financial information")
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
                 tabs.forEach { (name, icon) ->
                     NavigationBarItem(
                         selected = route == name,
@@ -223,7 +214,7 @@ private fun WorkspaceNavigation(
             }
         },
     ) { padding ->
-        NavHost(nav, startDestination = "Home", modifier = Modifier.padding(padding)) {
+        NavHost(nav, startDestination = "Home", modifier = Modifier.padding(padding).background(MaterialTheme.colorScheme.background)) {
             composable("Home") {
                 Dashboard(
                     data,
@@ -256,7 +247,7 @@ private fun WorkspaceNavigation(
                     { deletion = "profile" },
                 )
             }
-            composable("Categories") { CategoriesScreen(data, vm) }
+            composable("Categories") { CategoriesScreen(data, vm, hidden) }
             composable("Portability") { PortabilityScreen(data, vm, portability, hidden) }
             composable("add/{kind}") { back ->
                 TransactionForm(data, vm, null, back.arguments?.getString("kind") ?: "EXPENSE") { id
